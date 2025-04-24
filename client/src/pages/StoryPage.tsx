@@ -405,14 +405,17 @@ export default function StoryPage() {
           
           <Separator className="my-8 bg-amber-500/30" />
           
-          {/* Story Content */}
+          {/* Story Content with Customizable Reader */}
           <div className="flex flex-col-reverse lg:flex-row gap-8">
             <div className="lg:w-3/4">
-              <div className="prose prose-amber max-w-none bg-amber-50/60 p-8 rounded-lg border border-amber-500/20 shadow-sm reading-container">
-                {story.content.split('\n').map((paragraph, index) => (
-                  paragraph ? <p key={index}>{paragraph}</p> : <br key={index} />
-                ))}
-              </div>
+              {/* Use the new Reader component */}
+              <Reader 
+                title={story.title}
+                author={story.author?.fullName || "Unknown Author"}
+                content={story.content}
+                isBookmarked={isBookmarked}
+                onBookmark={handleBookmark}
+              />
             </div>
             
             <div className="lg:w-1/4">

@@ -3,49 +3,62 @@
 @tailwind utilities;
 
 :root {
-  --background: 40 23% 97%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
-  --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 35 80% 56%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 25 60% 35%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 35 80% 56%;
-  --accent-foreground: 24 9.8% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 35 80% 56%;
+  /* Dark fantasy theme colors */
+  --background: 27 25% 8%;
+  --foreground: 35 40% 95%;
+  --muted: 28 15% 12%;
+  --muted-foreground: 28 10% 70%;
+  --popover: 27 25% 10%;
+  --popover-foreground: 35 40% 95%;
+  --card: 27 25% 13%;
+  --card-foreground: 35 40% 95%;
+  --border: 28 15% 18%;
+  --input: 28 15% 18%;
+  --primary: 35 80% 46%;
+  --primary-foreground: 35 40% 95%;
+  --secondary: 25 60% 25%;
+  --secondary-foreground: 35 40% 95%;
+  --accent: 35 80% 46%;
+  --accent-foreground: 35 40% 95%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 35 80% 46%;
   --radius: 0.5rem;
+  
+  /* Reading preferences variables */
+  --reader-font-size: 1.125rem;
+  --reader-line-height: 1.8;
+  --reader-max-width: 780px;
+  --reader-font-family: 'Crimson Text', 'Garamond', serif;
+  --reader-bg-color: hsl(35, 40%, 95%);
+  --reader-text-color: hsl(27, 25%, 15%);
 }
 
 .dark {
-  --background: 20 14.3% 4.1%;
-  --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 35 80% 56%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 25 60% 35%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 35 80% 56%;
-  --accent-foreground: 0 0% 98%;
+  --background: 27 25% 6%;
+  --foreground: 35 40% 95%;
+  --muted: 28 15% 10%;
+  --muted-foreground: 28 10% 70%;
+  --popover: 27 25% 8%;
+  --popover-foreground: 35 40% 95%;
+  --card: 27 25% 11%;
+  --card-foreground: 35 40% 95%;
+  --border: 28 15% 15%;
+  --input: 28 15% 15%;
+  --primary: 35 80% 40%;
+  --primary-foreground: 35 40% 95%;
+  --secondary: 25 60% 25%;
+  --secondary-foreground: 35 40% 95%;
+  --accent: 35 80% 40%;
+  --accent-foreground: 35 40% 95%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 35 80% 56%;
+  --ring: 35 80% 40%;
   --radius: 0.5rem;
+  
+  /* Reading preferences in dark mode */
+  --reader-bg-color: hsl(27, 25%, 12%);
+  --reader-text-color: hsl(35, 40%, 95%);
 }
 
 @layer base {
@@ -54,7 +67,7 @@
   }
 
   body {
-    @apply font-sans bg-[#F8F0E3] text-foreground;
+    @apply font-sans bg-[#1A150E] text-foreground;
   }
 }
 
@@ -173,10 +186,69 @@
 
 /* Reading container */
 .reading-container {
-  max-width: 780px;
+  max-width: var(--reader-max-width);
   margin: 0 auto;
-  line-height: 1.8;
-  font-size: 1.1rem;
+  line-height: var(--reader-line-height);
+  font-size: var(--reader-font-size);
+  font-family: var(--reader-font-family);
+  color: var(--reader-text-color);
+  transition: all 0.3s ease;
+  padding: 0 1rem;
+}
+
+/* Reader themes */
+.reader-theme-light {
+  --reader-bg-color: hsl(35, 40%, 95%);
+  --reader-text-color: hsl(27, 25%, 15%);
+}
+
+.reader-theme-dark {
+  --reader-bg-color: hsl(27, 25%, 12%);
+  --reader-text-color: hsl(35, 40%, 95%);
+}
+
+.reader-theme-sepia {
+  --reader-bg-color: hsl(30, 30%, 88%);
+  --reader-text-color: hsl(25, 30%, 25%);
+}
+
+/* Reader font families */
+.reader-font-serif {
+  --reader-font-family: 'Crimson Text', 'Garamond', serif;
+}
+
+.reader-font-sans {
+  --reader-font-family: 'Nunito', 'Open Sans', sans-serif;
+}
+
+/* Reader font sizes */
+.reader-text-sm {
+  --reader-font-size: 0.95rem;
+  --reader-line-height: 1.6;
+}
+
+.reader-text-md {
+  --reader-font-size: 1.125rem;
+  --reader-line-height: 1.8;
+}
+
+.reader-text-lg {
+  --reader-font-size: 1.3rem;
+  --reader-line-height: 1.9;
+}
+
+.reader-text-xl {
+  --reader-font-size: 1.5rem;
+  --reader-line-height: 2;
+}
+
+/* Reader wrapper */
+.reader-wrapper {
+  background-color: var(--reader-bg-color);
+  padding: 2rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.3s ease;
 }
 
 /* Editor styles */
