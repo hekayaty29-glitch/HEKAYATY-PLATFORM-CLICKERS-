@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 40 23% 97%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 35 80% 56%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 25 60% 35%;
+  --secondary-foreground: 24 9.8% 10%;
+  --accent: 35 80% 56%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 35 80% 56%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 20 14.3% 4.1%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 35 80% 56%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 25 60% 35%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 35 80% 56%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 35 80% 56%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans bg-[#F8F0E3] text-foreground;
+  }
+}
+
+/* Custom colors */
+.text-amber-deep {
+  color: #D68C47;
+}
+
+.text-bronze-dark {
+  color: #8D5524;
+}
+
+.text-gold-rich {
+  color: #E6B17E;
+}
+
+.text-brown-dark {
+  color: #3D2914;
+}
+
+.text-parchment {
+  color: #F8F0E3;
+}
+
+.bg-amber-deep {
+  background-color: #D68C47;
+}
+
+.bg-bronze-dark {
+  background-color: #8D5524;
+}
+
+.bg-gold-rich {
+  background-color: #E6B17E;
+}
+
+.bg-brown-dark {
+  background-color: #3D2914;
+}
+
+.bg-midnight-blue {
+  background-color: #1F2937;
+}
+
+.bg-parchment {
+  background-color: #F8F0E3;
+}
+
+.border-amber-deep {
+  border-color: #D68C47;
+}
+
+.border-bronze-dark {
+  border-color: #8D5524;
+}
+
+.border-gold-rich {
+  border-color: #E6B17E;
+}
+
+.border-brown-dark {
+  border-color: #3D2914;
+}
+
+.hover\:bg-amber-deep:hover {
+  background-color: #D68C47;
+}
+
+.hover\:bg-bronze-dark:hover {
+  background-color: #8D5524;
+}
+
+.hover\:text-amber-deep:hover {
+  color: #D68C47;
+}
+
+/* Custom fonts */
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.font-nunito {
+  font-family: 'Nunito', sans-serif;
+}
+
+.font-cormorant {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+/* Hero section with castle background */
+.hero-section {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.6)), url('./assets/castle-background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Card hover effects */
+.story-card {
+  transition: transform 0.3s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Genre badge styling */
+.genre-badge {
+  background-color: rgba(214, 140, 71, 0.9);
+  transition: all 0.3s ease;
+}
+
+.genre-badge:hover {
+  background-color: rgba(141, 85, 36, 1);
+}
+
+/* Reading container */
+.reading-container {
+  max-width: 780px;
+  margin: 0 auto;
+  line-height: 1.8;
+  font-size: 1.1rem;
+}
+
+/* Editor styles */
+.editor-container {
+  min-height: 400px;
+  border: 1px solid #D68C47;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background-color: white;
+}
+
+.editor-container:focus-within {
+  outline: 2px solid #D68C47;
+  outline-offset: 2px;
+}
+
+/* Text shadow for hero elements */
+.text-shadow {
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.text-shadow-sm {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
