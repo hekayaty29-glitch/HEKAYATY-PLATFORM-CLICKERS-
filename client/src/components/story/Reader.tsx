@@ -15,11 +15,12 @@ interface ReaderProps {
   title: string;
   author: string;
   content: string;
+  storyId?: number;
   onBookmark?: () => void;
   isBookmarked?: boolean;
 }
 
-export function Reader({ title, author, content, onBookmark, isBookmarked = false }: ReaderProps) {
+export function Reader({ title, author, content, storyId, onBookmark, isBookmarked = false }: ReaderProps) {
   // Reader preferences with defaults
   const [preferences, setPreferences] = useState<ReaderPreferences>({
     fontSize: "md",
@@ -63,19 +64,21 @@ export function Reader({ title, author, content, onBookmark, isBookmarked = fals
           const progress = Math.min(100, Math.round((contentScrolled / (contentHeight - clientHeight)) * 100));
           setReadProgress(progress);
           
-          // Save progress to localStorage
-          localStorage.setItem(`reading-progress-${title}`, progress.toString());
+          // Save progress to localStorage with a unique key
+          const progressKey = storyId ? `reading-progress-${storyId}` : `reading-progress-${title}`;
+          localStorage.setItem(progressKey, progress.toString());
         }
       }
     };
     
     window.addEventListener("scroll", trackProgress);
     return () => window.removeEventListener("scroll", trackProgress);
-  }, [preferences.viewMode, title]);
+  }, [preferences.viewMode, title, storyId]);
   
   // Load saved progress
   useEffect(() => {
-    const savedProgress = localStorage.getItem(`reading-progress-${title}`);
+    const progressKey = storyId ? `reading-progress-${storyId}` : `reading-progress-${title}`;
+    const savedProgress = localStorage.getItem(progressKey);
     if (savedProgress) {
       setReadProgress(parseInt(savedProgress));
       if (preferences.viewMode === "paginated") {
@@ -84,7 +87,7 @@ export function Reader({ title, author, content, onBookmark, isBookmarked = fals
         setCurrentPage(pageFromProgress || 1);
       }
     }
-  }, [title, preferences.viewMode, totalPages]);
+  }, [storyId, title, preferences.viewMode, totalPages]);
 
   // Get preferences from localStorage if available
   useEffect(() => {
@@ -109,7 +112,10 @@ export function Reader({ title, author, content, onBookmark, isBookmarked = fals
       setCurrentPage(currentPage + 1);
       const newProgress = Math.min(100, Math.round((currentPage / totalPages) * 100));
       setReadProgress(newProgress);
-      localStorage.setItem(`reading-progress-${title}`, newProgress.toString());
+      
+      // Save progress
+      const progressKey = storyId ? `reading-progress-${storyId}` : `reading-progress-${title}`;
+      localStorage.setItem(progressKey, newProgress.toString());
     }
   };
   
@@ -118,7 +124,10 @@ export function Reader({ title, author, content, onBookmark, isBookmarked = fals
       setCurrentPage(currentPage - 1);
       const newProgress = Math.max(0, Math.round(((currentPage - 1) / totalPages) * 100));
       setReadProgress(newProgress);
-      localStorage.setItem(`reading-progress-${title}`, newProgress.toString());
+      
+      // Save progress
+      const progressKey = storyId ? `reading-progress-${storyId}` : `reading-progress-${title}`;
+      localStorage.setItem(progressKey, newProgress.toString());
     }
   };
 
