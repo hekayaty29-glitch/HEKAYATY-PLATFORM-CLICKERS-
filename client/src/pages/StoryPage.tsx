@@ -29,6 +29,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn, formatDate, calculateReadTime, getRatingStars } from "@/lib/utils";
+import { Reader } from "@/components/story/Reader";
 import {
   Form,
   FormControl,
