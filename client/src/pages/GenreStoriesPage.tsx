@@ -113,10 +113,10 @@ export default function GenreStoriesPage() {
           {/* Genre Tabs */}
           {!genreId && genres && (
             <Tabs defaultValue="all" className="w-full mb-8">
-              <TabsList className="bg-amber-50/90 border border-amber-500/30 w-full h-auto flex flex-wrap justify-start">
+              <TabsList className="bg-amber-50/90 border border-amber-500/30 w-full h-auto flex flex-wrap justify-start shadow-sm">
                 <TabsTrigger 
                   value="all" 
-                  className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white"
+                  className="font-cinzel font-medium text-brown-dark data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md"
                   onClick={() => setSelectedGenreId(undefined)}
                 >
                   All Genres
@@ -126,7 +126,7 @@ export default function GenreStoriesPage() {
                   <TabsTrigger 
                     key={genre.id}
                     value={genre.name.toLowerCase().replace(/\s+/g, '-')} 
-                    className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white"
+                    className="font-cinzel font-medium text-brown-dark data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md"
                     onClick={() => setSelectedGenreId(genre.id)}
                   >
                     {genre.name}
@@ -142,19 +142,19 @@ export default function GenreStoriesPage() {
               {genres.map(genre => (
                 <Link key={genre.id} href={`/genres/${genre.id}`}>
                   <a className="block">
-                    <Card className="border-amber-500/30 hover:border-amber-500 transition-colors hover:shadow-md bg-amber-50/60">
+                    <Card className="border-amber-500/30 hover:border-amber-600 transition-all hover:shadow-md bg-amber-50/70">
                       <CardHeader className="pb-2">
-                        <CardTitle className="font-cinzel text-brown-dark flex items-center justify-between">
+                        <CardTitle className="font-cinzel text-brown-dark font-bold flex items-center justify-between">
                           {genre.name}
-                          <div className="bg-amber-500 text-white p-2 rounded-full">
+                          <div className="bg-gradient-to-br from-amber-500 to-amber-700 text-white p-2 rounded-full shadow-sm">
                             <i className={`fa${genre.icon}`}></i>
                           </div>
                         </CardTitle>
-                        <CardDescription>{genre.description}</CardDescription>
+                        <CardDescription className="text-gray-700 font-medium">{genre.description}</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <Button 
-                          className="w-full bg-amber-800 hover:bg-amber-500 text-white"
+                          className="w-full bg-amber-800 hover:bg-amber-600 text-white font-medium shadow-sm hover:shadow-md transition-all"
                         >
                           Browse Stories
                         </Button>
@@ -169,7 +169,7 @@ export default function GenreStoriesPage() {
           {/* Stories Section */}
           {(selectedGenreId || genreId === undefined) && (
             <>
-              <Card className="border-amber-500/30 bg-amber-50/80 mb-8">
+              <Card className="border-amber-500/30 bg-amber-50/90 mb-8 shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-grow">
@@ -177,9 +177,9 @@ export default function GenreStoriesPage() {
                         placeholder="Search stories by title, description, or author..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pr-10 border-amber-500/50 focus:border-amber-500"
+                        className="pr-10 border-amber-500/50 focus:border-amber-600 focus:ring-amber-200 text-gray-800 font-medium"
                       />
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-brown-dark" />
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -188,13 +188,13 @@ export default function GenreStoriesPage() {
                         value={sortBy}
                         onValueChange={setSortBy}
                       >
-                        <SelectTrigger className="w-[180px] border-amber-500/50 focus:border-amber-500">
+                        <SelectTrigger className="w-[180px] border-amber-500/50 focus:border-amber-600 text-gray-800 font-medium">
                           <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent className="bg-amber-50 border-amber-500/50">
-                          <SelectItem value="newest">Newest First</SelectItem>
-                          <SelectItem value="oldest">Oldest First</SelectItem>
-                          <SelectItem value="rating">Highest Rated</SelectItem>
+                          <SelectItem value="newest" className="text-gray-800 font-medium">Newest First</SelectItem>
+                          <SelectItem value="oldest" className="text-gray-800 font-medium">Oldest First</SelectItem>
+                          <SelectItem value="rating" className="text-gray-800 font-medium">Highest Rated</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -205,7 +205,7 @@ export default function GenreStoriesPage() {
               {storiesLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Array(6).fill(0).map((_, i) => (
-                    <div key={i} className="animate-pulse bg-white rounded-lg h-80"></div>
+                    <div key={i} className="animate-pulse bg-amber-50/80 rounded-lg h-80 border border-amber-500/20 shadow-sm"></div>
                   ))}
                 </div>
               ) : sortedStories.length > 0 ? (
@@ -215,10 +215,10 @@ export default function GenreStoriesPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-16 bg-amber-50/50 rounded-lg border border-amber-500/20">
-                  <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                  <h3 className="font-cinzel text-xl text-brown-dark mb-2">No Stories Found</h3>
-                  <p className="text-gray-600 max-w-md mx-auto">
+                <div className="text-center py-16 bg-amber-50/60 rounded-lg border border-amber-500/30 shadow-sm">
+                  <AlertTriangle className="h-12 w-12 text-amber-600 mx-auto mb-4" />
+                  <h3 className="font-cinzel text-xl text-brown-dark font-bold mb-3">No Stories Found</h3>
+                  <p className="text-gray-800 font-medium max-w-md mx-auto">
                     {searchQuery 
                       ? "No stories match your search criteria. Try a different search term."
                       : `There are no stories available in ${selectedGenre ? `the ${selectedGenre.name} genre` : 'this category'} yet.`}

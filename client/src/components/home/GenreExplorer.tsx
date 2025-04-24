@@ -34,12 +34,12 @@ export default function GenreExplorer() {
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="bg-gradient-to-br from-amber-500 to-amber-800 rounded-lg p-4 animate-pulse h-28">
+              <div key={i} className="bg-gradient-to-br from-amber-500/90 to-amber-800/90 rounded-lg p-4 animate-pulse h-28 shadow-md">
                 <div className="flex justify-center mb-3">
-                  <div className="w-8 h-8 bg-white rounded-full" />
+                  <div className="w-8 h-8 bg-white/90 rounded-full" />
                 </div>
-                <div className="h-4 bg-white rounded mx-auto w-2/3" />
-                <div className="h-3 bg-white rounded mx-auto w-1/3 mt-1" />
+                <div className="h-4 bg-white/90 rounded mx-auto w-2/3" />
+                <div className="h-3 bg-white/80 rounded mx-auto w-1/3 mt-1" />
               </div>
             ))}
           </div>
@@ -56,12 +56,12 @@ export default function GenreExplorer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {genres?.map((genre) => (
             <Link key={genre.id} href={`/genres/${genre.id}`}>
-              <a className="bg-gradient-to-br from-amber-500 to-amber-800 text-white rounded-lg p-4 text-center cursor-pointer hover:shadow-lg transition-shadow">
+              <a className="bg-gradient-to-br from-amber-500/90 to-amber-800/90 rounded-lg p-4 text-center cursor-pointer hover:shadow-lg transition-all hover:scale-105">
                 <div className="flex justify-center mb-3">
-                  {genreIcons[genre.name] || <WandSparkles className="h-8 w-8" />}
+                  {genreIcons[genre.name] || <WandSparkles className="h-8 w-8 text-white" />}
                 </div>
-                <h3 className="font-cinzel font-bold">{genre.name}</h3>
-                <p className="text-xs mt-1">{Math.floor(Math.random() * 500)} stories</p>
+                <h3 className="font-cinzel font-bold text-white text-shadow-sm tracking-wide">{genre.name}</h3>
+                <p className="text-xs mt-1 text-amber-50 font-medium">{Math.floor(Math.random() * 500)} stories</p>
               </a>
             </Link>
           ))}
