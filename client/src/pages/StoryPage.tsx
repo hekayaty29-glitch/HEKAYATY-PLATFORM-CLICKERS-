@@ -414,6 +414,7 @@ export default function StoryPage() {
                 title={story.title}
                 author={story.author?.fullName || "Unknown Author"}
                 content={story.content}
+                storyId={story.id}
                 isBookmarked={isBookmarked}
                 onBookmark={handleBookmark}
               />
