@@ -2,12 +2,13 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Sun, Moon, Book, Maximize, Minimize } from "lucide-react";
+import { Sun, Moon, Book, Maximize, Minimize, Scroll, Columns } from "lucide-react";
 
 export interface ReaderPreferences {
   fontSize: string;
   fontFamily: string;
   theme: string;
+  viewMode?: "scroll" | "paginated";
 }
 
 interface ReaderSettingsProps {
@@ -26,6 +27,10 @@ export function ReaderSettings({ preferences, onPreferencesChange }: ReaderSetti
 
   const handleThemeChange = (theme: string) => {
     onPreferencesChange({ ...preferences, theme: theme });
+  };
+  
+  const handleViewModeChange = (mode: "scroll" | "paginated") => {
+    onPreferencesChange({ ...preferences, viewMode: mode });
   };
 
   return (
@@ -104,6 +109,33 @@ export function ReaderSettings({ preferences, onPreferencesChange }: ReaderSetti
             </TabsList>
           </Tabs>
         </div>
+      </div>
+
+      {/* View Mode Selection */}
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-medium">Reading Mode</label>
+        <Tabs 
+          value={preferences.viewMode || "scroll"} 
+          onValueChange={(value) => handleViewModeChange(value as "scroll" | "paginated")}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger 
+              value="scroll" 
+              className="flex items-center justify-center gap-2"
+            >
+              <Scroll className="h-4 w-4" />
+              <span>Scrolling</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="paginated" 
+              className="flex items-center justify-center gap-2"
+            >
+              <Columns className="h-4 w-4" />
+              <span>Pages</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
     </div>
   );
