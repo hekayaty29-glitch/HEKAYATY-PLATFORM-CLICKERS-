@@ -193,32 +193,41 @@
   font-family: var(--reader-font-family);
   color: var(--reader-text-color);
   transition: all 0.3s ease;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
+  text-align: justify;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 0 0 1px transparent; /* Improves font rendering */
 }
 
 /* Reader themes */
 .reader-theme-light {
-  --reader-bg-color: hsl(35, 40%, 95%);
-  --reader-text-color: hsl(27, 25%, 15%);
+  --reader-bg-color: hsl(35, 40%, 97%);
+  --reader-text-color: hsl(27, 35%, 10%); /* Darker text for better contrast */
 }
 
 .reader-theme-dark {
-  --reader-bg-color: hsl(27, 25%, 12%);
-  --reader-text-color: hsl(35, 40%, 95%);
+  --reader-bg-color: hsl(27, 25%, 10%); /* Slightly darker background */
+  --reader-text-color: hsl(35, 80%, 96%); /* Brighter text for better readability */
 }
 
 .reader-theme-sepia {
-  --reader-bg-color: hsl(30, 30%, 88%);
-  --reader-text-color: hsl(25, 30%, 25%);
+  --reader-bg-color: hsl(30, 35%, 92%);
+  --reader-text-color: hsl(25, 75%, 15%); /* Much darker, richer text */
 }
 
 /* Reader font families */
 .reader-font-serif {
-  --reader-font-family: 'Crimson Text', 'Garamond', serif;
+  --reader-font-family: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  font-weight: 500; /* Slightly bolder for better readability */
+  letter-spacing: 0.01em; /* Better character spacing */
 }
 
 .reader-font-sans {
-  --reader-font-family: 'Nunito', 'Open Sans', sans-serif;
+  --reader-font-family: 'Nunito', 'Open Sans', 'Avenir', sans-serif;
+  font-weight: 450; /* Slightly heavier for readability */
+  letter-spacing: 0.015em; /* Slightly wider letter spacing */
 }
 
 /* Reader font sizes */
@@ -245,10 +254,11 @@
 /* Reader wrapper */
 .reader-wrapper {
   background-color: var(--reader-bg-color);
-  padding: 2rem 1rem;
+  padding: 2.5rem 1.5rem;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.3s ease;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(214, 140, 71, 0.15);
 }
 
 /* Editor styles */
@@ -293,4 +303,12 @@
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Text reader styling */
+.text-reader {
+  color: var(--reader-text-color);
+  font-family: var(--reader-font-family);
+  font-size: var(--reader-font-size);
+  text-indent: 1.5em; /* First line paragraph indent */
 }

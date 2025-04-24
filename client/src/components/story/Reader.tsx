@@ -144,7 +144,7 @@ export function Reader({ title, author, content, storyId, onBookmark, isBookmark
   const formattedContent = preferences.viewMode === "paginated" 
     ? renderPaginatedContent() 
     : paragraphs.map((paragraph, index) => (
-        <p key={index} className="mb-4">
+        <p key={index} className="mb-6 text-reader first-letter:text-lg first-letter:font-semibold">
           {paragraph}
         </p>
       ));
@@ -158,7 +158,7 @@ export function Reader({ title, author, content, storyId, onBookmark, isBookmark
     const currentPageParagraphs = paragraphs.slice(startIndex, endIndex);
     
     return currentPageParagraphs.map((paragraph, index) => (
-      <p key={`page-${currentPage}-para-${index}`} className="mb-4">
+      <p key={`page-${currentPage}-para-${index}`} className="mb-6 text-reader first-letter:text-lg first-letter:font-semibold">
         {paragraph}
       </p>
     ));
