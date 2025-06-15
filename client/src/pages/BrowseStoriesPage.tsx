@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import StoryCard from "@/components/story/StoryCard";
 import { StoryCard as StoryCardType, Genre } from "@/lib/types";
 import { Search, SlidersHorizontal, FilterX, BookOpen, Award, Bookmark, AlertTriangle } from "lucide-react";
+import Container from "@/components/layout/Container";
 import { useAuth } from "@/lib/auth";
 
 export default function BrowseStoriesPage() {
@@ -42,12 +43,17 @@ export default function BrowseStoriesPage() {
   const isTopRated = location.includes("/top-rated");
   const isBookmarks = location.includes("/bookmarks");
   
-  // Fetch genres
-  const { data: genres } = useQuery<Genre[]>({
+  // Fetch genres and ensure "Historical" is available
+  const { data: fetchedGenres } = useQuery<Genre[]>({
     queryKey: ["/api/genres"],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-  
+
+  // Add local fallback genre if it's missing
+  const genres: Genre[] = (fetchedGenres ?? []).some((g) => g.name.toLowerCase() === "historical")
+    ? fetchedGenres ?? []
+    : [...(fetchedGenres ?? []), { id: 999, name: "Historical", description: "Historical fiction", icon: "🏰" }];
+
   // Fetch stories based on page mode
   const { data: stories, isLoading } = useQuery<StoryCardType[]>({
     queryKey: [
@@ -139,28 +145,12 @@ export default function BrowseStoriesPage() {
       </Helmet>
       
       <div className="bg-gradient-to-b from-amber-500/5 to-amber-50/5 pt-8 pb-16">
-        <div className="container mx-auto max-w-6xl px-4">
-          {/* Header */}
+        <Container>
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div>
-              <h1 className="font-cinzel text-3xl font-bold text-brown-dark text-center md:text-left">{pageTitle}</h1>
-              <p className="text-gray-600 mt-2 text-center md:text-left">{pageDescription}</p>
+              <h1 className="font-cinzel text-3xl font-bold text-white text-center md:text-left">{pageTitle}</h1>
+              <p className="text-white mt-2 text-center md:text-left">{pageDescription}</p>
             </div>
-            
-            {!isBookmarks && (
-              <div className="mt-4 md:mt-0 flex items-center">
-                <Button 
-                  variant="outline" 
-                  className={`border-amber-500 ${isTopRated ? 'bg-amber-500 text-white' : 'text-brown-dark hover:bg-amber-500 hover:text-white'}`}
-                  asChild
-                >
-                  <a href="/top-rated">
-                    <Award className="mr-2 h-4 w-4" />
-                    Top Rated
-                  </a>
-                </Button>
-              </div>
-            )}
           </div>
           
           {/* Filters */}
@@ -180,30 +170,33 @@ export default function BrowseStoriesPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="border-amber-500/50 text-brown-dark">
+                      <Button variant="outline" className="border-amber-500/50 text-white">
                         <BookOpen className="mr-2 h-4 w-4" />
                         {storyType === "all" ? "All Types" : storyType === "novels" ? "Novels" : "Short Stories"}
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-amber-50 border-amber-500/50">
-                      <DropdownMenuLabel>Story Type</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuCheckboxItem
-                        checked={storyType === "all"}
-                        onCheckedChange={() => setStoryType("all")}
-                      >
+                    <DropdownMenuContent className="bg-brown-dark/95 border-brown-dark/50 text-white">
+                      <DropdownMenuLabel className="text-white">Story Type</DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-brown-dark/50" />
+                        <DropdownMenuCheckboxItem
+                          className="hover:bg-brown-dark/20 focus:bg-brown-dark/20"
+                          checked={storyType === "all"}
+                          onCheckedChange={() => setStoryType("all")}
+                        >
                         All Types
                       </DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem
-                        checked={storyType === "novels"}
-                        onCheckedChange={() => setStoryType("novels")}
-                      >
+                        <DropdownMenuCheckboxItem
+                          className="hover:bg-brown-dark/20 focus:bg-brown-dark/20"
+                          checked={storyType === "novels"}
+                          onCheckedChange={() => setStoryType("novels")}
+                        >
                         Novels
                       </DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem
-                        checked={storyType === "short-stories"}
-                        onCheckedChange={() => setStoryType("short-stories")}
-                      >
+                        <DropdownMenuCheckboxItem
+                          className="hover:bg-brown-dark/20 focus:bg-brown-dark/20"
+                          checked={storyType === "short-stories"}
+                          onCheckedChange={() => setStoryType("short-stories")}
+                        >
                         Short Stories
                       </DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
@@ -211,18 +204,19 @@ export default function BrowseStoriesPage() {
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="border-amber-500/50 text-brown-dark">
+                      <Button variant="outline" className="border-amber-500/50 text-white">
                         <SlidersHorizontal className="mr-2 h-4 w-4" />
                         Genres
                         {selectedGenres.length > 0 && ` (${selectedGenres.length})`}
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-amber-50 border-amber-500/50">
-                      <DropdownMenuLabel>Select Genres</DropdownMenuLabel>
+                    <DropdownMenuContent className="bg-brown-dark/95 border-amber-500/50 text-white">
+                      <DropdownMenuLabel className="text-white">Select Genres</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {genres?.map(genre => (
+                      {genres.map(genre => (
                         <DropdownMenuCheckboxItem
                           key={genre.id}
+                          className="hover:bg-amber-500/20 focus:bg-amber-500/20"
                           checked={selectedGenres.includes(genre.id)}
                           onCheckedChange={() => toggleGenre(genre.id)}
                         >
@@ -239,7 +233,7 @@ export default function BrowseStoriesPage() {
                     <SelectTrigger className="w-[180px] border-amber-500/50 focus:border-amber-500">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
-                    <SelectContent className="bg-amber-50 border-amber-500/50">
+                    <SelectContent className="bg-brown-dark/95 border-amber-500/50 text-white">
                       <SelectItem value="newest">Newest First</SelectItem>
                       <SelectItem value="oldest">Oldest First</SelectItem>
                       <SelectItem value="rating">Highest Rated</SelectItem>
@@ -248,7 +242,7 @@ export default function BrowseStoriesPage() {
                   
                   <Button 
                     variant="ghost" 
-                    className="text-gray-500 hover:text-amber-800"
+                    className="text-white hover:text-amber-200"
                     onClick={resetFilters}
                   >
                     <FilterX className="h-4 w-4" />
@@ -260,13 +254,13 @@ export default function BrowseStoriesPage() {
           
           {/* Stories */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {Array(6).fill(0).map((_, i) => (
                 <div key={i} className="animate-pulse bg-white rounded-lg h-80"></div>
               ))}
             </div>
           ) : sortedStories.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {sortedStories.map(story => (
                 <StoryCard 
                   key={story.id} 
@@ -276,12 +270,12 @@ export default function BrowseStoriesPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-amber-50/50 rounded-lg border border-amber-500/20">
+            <div className="text-center py-16 bg-amber-50/10 rounded-lg border border-amber-500/20">
               <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-              <h3 className="font-cinzel text-xl text-brown-dark mb-2">
+              <h3 className="font-cinzel text-xl text-white mb-2">
                 {isBookmarks ? "Your Library is Empty" : "No Stories Found"}
               </h3>
-              <p className="text-gray-600 max-w-md mx-auto">
+              <p className="text-white/80 max-w-md mx-auto">
                 {isBookmarks 
                   ? "You haven't bookmarked any stories yet. Start exploring to add stories to your library."
                   : searchQuery || selectedGenres.length > 0 || storyType !== "all"
@@ -299,7 +293,7 @@ export default function BrowseStoriesPage() {
               )}
             </div>
           )}
-        </div>
+        </Container>
       </div>
     </>
   );

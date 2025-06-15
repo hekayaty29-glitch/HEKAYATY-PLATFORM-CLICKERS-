@@ -111,7 +111,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
+    const user: User = {
+      id,
+      bio: null,
+      avatarUrl: null,
+      isPremium: null,
+      isAuthor: null,
+      ...insertUser,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -206,11 +213,15 @@ export class MemStorage implements IStorage {
   async createStory(insertStory: InsertStory): Promise<Story> {
     const id = this.storyIdCounter++;
     const now = new Date();
-    const story: Story = { 
-      ...insertStory, 
-      id, 
-      createdAt: now, 
-      updatedAt: now 
+    const story: Story = {
+      id,
+      isPremium: null,
+      coverImage: null,
+      isPublished: null,
+      isShortStory: null,
+      createdAt: now,
+      updatedAt: now,
+      ...insertStory,
     };
     
     this.stories.set(id, story);
@@ -285,10 +296,11 @@ export class MemStorage implements IStorage {
 
   async createRating(insertRating: InsertRating): Promise<Rating> {
     const id = this.ratingIdCounter++;
-    const rating: Rating = { 
-      ...insertRating, 
-      id, 
-      createdAt: new Date() 
+    const rating: Rating = {
+      id,
+      review: null,
+      createdAt: new Date(),
+      ...insertRating,
     };
     
     this.ratings.set(id, rating);
@@ -352,8 +364,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Import the database storage implementation
-import { DatabaseStorage } from "./db-storage";
-
-// Use DatabaseStorage instead of MemStorage
-export const storage = new DatabaseStorage();
+// Currently we are pausing DB work, so we fall back to the in-memory implementation.
+// Swap to `new DatabaseStorage()` once the database layer is finished.
+export const storage = new MemStorage();

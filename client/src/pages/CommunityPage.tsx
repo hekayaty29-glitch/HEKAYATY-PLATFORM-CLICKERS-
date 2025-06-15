@@ -1,0 +1,676 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Sparkles,
+  Users,
+  BookOpen,
+  Paintbrush2,
+  PenTool,
+  Trophy,
+  ImagePlus,
+  Send,
+  PlusCircle,
+  MessageCircle,
+  Heart,
+  Share2,
+  Eye,
+  Star,
+  Crown,
+  Zap,
+  Globe,
+  Clock,
+  Filter,
+  Search,
+  TrendingUp,
+  Award,
+  Flame,
+  ChevronUp,
+  ChevronDown,
+  UserPlus,
+  Camera,
+  Mic,
+  Video,
+  FileText,
+  Link,
+  Hash,
+  AtSign,
+  Pin,
+  ThumbsUp,
+  MessageSquare,
+  Bookmark
+} from 'lucide-react';
+
+const CommunityPage: React.FC = () => {
+  // Mock data and state management
+  const [activeTab, setActiveTab] = useState('discussions');
+  const [discussions, setDiscussions] = useState([
+    {
+      id: 1,
+      title: 'The Art of Magical Storytelling',
+      author: 'WizardScribe',
+      avatar: '🧙‍♂️',
+      content:
+        "What techniques do you use to weave magic into your narratives? I've been experimenting with dream sequences...",
+      timestamp: '2 hours ago',
+      likes: 42,
+      replies: 18,
+      views: 156,
+      tags: ['storytelling', 'magic', 'writing'],
+      category: 'Writing',
+      isPinned: true,
+      trending: true,
+    },
+    {
+      id: 2,
+      title: 'Monthly Writing Challenge: Enchanted Forests',
+      author: 'ForestKeeper',
+      avatar: '🌲',
+      content:
+        "This month's challenge: Write a 500-word story set in an enchanted forest. Let your imagination run wild!",
+      timestamp: '4 hours ago',
+      likes: 67,
+      replies: 23,
+      views: 203,
+      tags: ['challenge', 'forest', 'creative'],
+      category: 'Challenges',
+      isPinned: false,
+      trending: true,
+    },
+    {
+      id: 3,
+      title: 'Character Development Workshop',
+      author: 'MysticMind',
+      avatar: '🔮',
+      content:
+        'Join us for an interactive session on creating memorable characters that readers will love and remember.',
+      timestamp: '1 day ago',
+      likes: 34,
+      replies: 12,
+      views: 89,
+      tags: ['workshop', 'characters', 'development'],
+      category: 'Workshops',
+      isPinned: false,
+      trending: false,
+    },
+  ]);
+
+  const [forums] = useState([
+    { id: 1, name: 'Fantasy Writing', members: 1247, description: 'Epic tales and magical worlds', color: 'purple', posts: 3421 },
+    { id: 2, name: 'Poetry Corner', members: 892, description: 'Verses that touch the soul', color: 'pink', posts: 2156 },
+    { id: 3, name: 'Sci-Fi Chronicles', members: 1034, description: 'Future worlds and beyond', color: 'blue', posts: 2743 },
+  ]);
+
+  const [clubs] = useState([
+    { id: 1, name: 'Midnight Writers', members: 245, level: 'Elite', activity: 'Very Active' },
+    { id: 2, name: 'Dragon Tales Guild', members: 189, level: 'Advanced', activity: 'Active' },
+    { id: 3, name: 'Mystic Poets Society', members: 156, level: 'Intermediate', activity: 'Moderate' },
+  ]);
+
+  const [gallery] = useState([
+    { id: 1, title: 'Enchanted Castle', artist: 'ArtMage', likes: 156, image: '🏰' },
+    { id: 2, title: "Dragon's Lair", artist: 'FirePainter', likes: 243, image: '🐉' },
+    { id: 3, title: 'Mystic Forest', artist: 'NatureWitch', likes: 187, image: '🌲' },
+    { id: 4, title: 'Starlit Path', artist: 'CelestialArt', likes: 298, image: '✨' },
+  ]);
+
+  const [newDiscussion, setNewDiscussion] = useState({ title: '', content: '', tags: '', category: 'General' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('trending');
+
+  const categories = ['General', 'Writing', 'Art', 'Workshops', 'Challenges', 'Feedback', 'Announcements'];
+
+  const handleCreateDiscussion = () => {
+    if (newDiscussion.title && newDiscussion.content) {
+      const discussion = {
+        id: discussions.length + 1,
+        title: newDiscussion.title,
+        author: 'You',
+        avatar: '👤',
+        content: newDiscussion.content,
+        timestamp: 'Just now',
+        likes: 0,
+        replies: 0,
+        views: 1,
+        tags: newDiscussion.tags.split(',').map((tag) => tag.trim()),
+        category: newDiscussion.category,
+        isPinned: false,
+        trending: false,
+      };
+      setDiscussions([discussion, ...discussions]);
+      setNewDiscussion({ title: '', content: '', tags: '', category: 'General' });
+    }
+  };
+
+  const filteredDiscussions = discussions.filter((discussion) => {
+    const matchesSearch =
+      discussion.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      discussion.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || discussion.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const sortedDiscussions = [...filteredDiscussions].sort((a, b) => {
+    switch (sortBy) {
+      case 'trending':
+        return (b.trending ? 1 : 0) - (a.trending ? 1 : 0) || b.likes - a.likes;
+      case 'recent':
+        // Using relative strings; fallback to original order
+        return 0;
+      case 'popular':
+        return b.likes - a.likes;
+      default:
+        return 0;
+    }
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#1A150E] via-[#2B2115] to-[#3D2914]">
+      {/* Magical Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-amber-600/20 to-amber-800/20"></div>
+        <div className="absolute inset-0">
+          {[...Array(50)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+        </div>
+
+        <div className="relative z-10 text-center py-24 px-4">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-7xl font-bold bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-300 bg-clip-text text-transparent mb-6">
+              Hekayaty Universe
+            </h1>
+            <p className="text-2xl text-gray-200 mb-8 font-light">Where imagination knows no bounds and every voice creates magic</p>
+            <div className="flex flex-wrap justify-center gap-4 text-lg text-gray-300">
+              <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+                <Users className="h-5 w-5 text-amber-400" />
+                <span>12,847 Creators</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+                <MessageCircle className="h-5 w-5 text-amber-500" />
+                <span>45,621 Stories</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+                <Heart className="h-5 w-5 text-amber-300" />
+                <span>189K Connections</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="sticky top-0 z-40 bg-black/30 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-wrap gap-2 py-4">
+            {[
+              { id: 'discussions', label: 'Free Discussions', icon: MessageCircle, color: 'blue' },
+              { id: 'forums', label: 'Topic Forums', icon: Users, color: 'purple' },
+              { id: 'clubs', label: 'Creative Clubs', icon: BookOpen, color: 'green' },
+              { id: 'gallery', label: 'Art Gallery', icon: Paintbrush2, color: 'pink' },
+              { id: 'workshops', label: 'Live Workshops', icon: PenTool, color: 'yellow' },
+              { id: 'news', label: 'Community News', icon: Trophy, color: 'red' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 ${
+                  activeTab === tab.id
+                    ? `bg-${tab.color}-500/30 text-${tab.color}-300 border border-${tab.color}-400/50 shadow-lg shadow-${tab.color}-500/20`
+                    : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <tab.icon className="h-5 w-5" />
+                <span className="font-medium">{tab.label}</span>
+                {activeTab === tab.id && <Sparkles className="h-4 w-4 animate-pulse" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Discussions Tab */}
+        {activeTab === 'discussions' && (
+          <div className="space-y-8">
+            {/* Create Discussion */}
+            <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-8 border border-blue-500/20 backdrop-blur-sm">
+              <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                <MessageCircle className="h-8 w-8 text-blue-400" />
+                Start a New Discussion
+                <Zap className="h-6 w-6 text-yellow-400 animate-pulse" />
+              </h2>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="What's on your mind? Share your thoughts..."
+                    value={newDiscussion.title}
+                    onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
+                    className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-64"
+                  />
+                  <select
+                    value={newDiscussion.category}
+                    onChange={(e) => setNewDiscussion({ ...newDiscussion, category: e.target.value })}
+                    className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-gray-800">
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  placeholder="Share your thoughts, ask questions, start conversations... This is your space to express freely!"
+                  value={newDiscussion.content}
+                  onChange={(e) => setNewDiscussion({ ...newDiscussion, content: e.target.value })}
+                  rows={4}
+                  className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                />
+
+                <div className="flex flex-wrap gap-4 items-center">
+                  <input
+                    type="text"
+                    placeholder="Add tags (comma separated)"
+                    value={newDiscussion.tags}
+                    onChange={(e) => setNewDiscussion({ ...newDiscussion, tags: e.target.value })}
+                    className="flex-1 min-w-64 p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  />
+
+                  <div className="flex gap-2">
+                    <button className="p-3 bg-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/20 transition-all">
+                      <Camera className="h-5 w-5" />
+                    </button>
+                    <button className="p-3 bg-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/20 transition-all">
+                      <Link className="h-5 w-5" />
+                    </button>
+                    <button className="p-3 bg-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/20 transition-all">
+                      <Hash className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleCreateDiscussion}
+                    className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2"
+                  >
+                    <PlusCircle className="h-5 w-5" />
+                    Share Your Thoughts
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Filters & Search */}
+            <div className="flex flex-wrap gap-4 items-center justify-between bg-black/20 p-6 rounded-2xl backdrop-blur-sm">
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search discussions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-64"
+                  />
+                </div>
+
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="p-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                >
+                  <option value="all" className="bg-gray-800">
+                    All Categories
+                  </option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-gray-800">
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2">
+                {['trending', 'recent', 'popular'].map((sort) => (
+                  <button
+                    key={sort}
+                    onClick={() => setSortBy(sort)}
+                    className={`px-4 py-2 rounded-xl capitalize transition-all ${
+                      sortBy === sort
+                        ? `bg-blue-500/30 text-blue-300 border border-blue-400/50`
+                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                    }`}
+                  >
+                    {sort === 'trending' && <TrendingUp className="inline h-4 w-4 mr-1" />}
+                    {sort === 'recent' && <Clock className="inline h-4 w-4 mr-1" />}
+                    {sort === 'popular' && <Flame className="inline h-4 w-4 mr-1" />}
+                    {sort}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Discussions List */}
+            <div className="space-y-6">
+              {sortedDiscussions.map((discussion) => (
+                <div
+                  key={discussion.id}
+                  className={`group bg-gradient-to-r from-white/5 to-white/10 rounded-2xl p-6 border transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
+                    discussion.isPinned ? 'border-yellow-400/50 bg-gradient-to-r from-yellow-900/20 to-orange-900/20' : 'border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xl">
+                        {discussion.avatar}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        {discussion.isPinned && <Pin className="h-4 w-4 text-yellow-400" />}
+                        {discussion.trending && <Flame className="h-4 w-4 text-orange-400" />}
+                        <span className="text-blue-300 font-semibold">{discussion.author}</span>
+                        <span className="text-gray-400 text-sm">{discussion.timestamp}</span>
+                        <div className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">{discussion.category}</div>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-300 transition-colors">{discussion.title}</h3>
+
+                      <p className="text-gray-300 mb-4 line-clamp-2">{discussion.content}</p>
+
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {discussion.tags.map((tag: string) => (
+                          <span
+                            key={tag}
+                            className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full hover:bg-blue-500/30 cursor-pointer transition-all"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6 text-gray-400">
+                          <button className="flex items-center gap-2 hover:text-red-400 transition-colors">
+                            <Heart className="h-5 w-5" />
+                            <span>{discussion.likes}</span>
+                          </button>
+                          <button className="flex items-center gap-2 hover:text-blue-400 transition-colors">
+                            <MessageSquare className="h-5 w-5" />
+                            <span>{discussion.replies}</span>
+                          </button>
+                          <div className="flex items-center gap-2">
+                            <Eye className="h-5 w-5" />
+                            <span>{discussion.views}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button className="p-2 bg-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/20 transition-all">
+                            <Bookmark className="h-4 w-4" />
+                          </button>
+                          <button className="p-2 bg-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/20 transition-all">
+                            <Share2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Forums Tab */}
+        {activeTab === 'forums' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <Users className="h-10 w-10 text-purple-400" /> Topic Forums <Crown className="h-8 w-8 text-yellow-400" />
+              </h2>
+              <p className="text-xl text-gray-300">Dive deep into specialized discussions</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {forums.map((forum) => (
+                <div
+                  key={forum.id}
+                  className="group bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-2xl p-6 border border-purple-500/20 hover:border-purple-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-12 h-12 bg-gradient-to-r from-${forum.color}-500 to-${forum.color}-600 rounded-full flex items-center justify-center`}>
+                      <BookOpen className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">{forum.name}</h3>
+                      <p className="text-gray-400 text-sm">{forum.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Members</span>
+                      <span className="text-white font-semibold">{forum.members.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Posts</span>
+                      <span className="text-white font-semibold">{forum.posts.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full mt-6 py-3 bg-purple-500/20 text-purple-300 rounded-xl font-semibold hover:bg-purple-500/30 transition-all flex items-center justify-center gap-2">
+                    <UserPlus className="h-4 w-4" /> Join Forum
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Clubs Tab */}
+        {activeTab === 'clubs' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <BookOpen className="h-10 w-10 text-green-400" /> Creative Clubs <Star className="h-8 w-8 text-yellow-400 animate-pulse" />
+              </h2>
+              <p className="text-xl text-gray-300">Join exclusive communities of passionate creators</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clubs.map((club) => (
+                <div
+                  key={club.id}
+                  className="bg-gradient-to-br from-green-900/30 to-blue-900/30 rounded-2xl p-6 border border-green-500/20 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">{club.name}</h3>
+                    <div className="px-3 py-1 bg-green-500/20 text-green-300 text-xs rounded-full">{club.level}</div>
+                  </div>
+
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Members</span>
+                      <span className="text-white font-semibold">{club.members}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Activity</span>
+                      <span
+                        className={`font-semibold ${
+                          club.activity === 'Very Active' ? 'text-green-400' : club.activity === 'Active' ? 'text-yellow-400' : 'text-orange-400'
+                        }`}
+                      >
+                        {club.activity}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button className="w-full py-3 bg-green-500/20 text-green-300 rounded-xl font-semibold hover:bg-green-500/30 transition-all flex items-center justify-center gap-2">
+                    <Crown className="h-4 w-4" /> Join Club
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gallery Tab */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <Paintbrush2 className="h-10 w-10 text-pink-400" /> Magical Art Gallery{' '}
+                <Sparkles className="h-8 w-8 text-yellow-400 animate-spin" />
+              </h2>
+              <p className="text-xl text-gray-300">Showcase your creative masterpieces</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {gallery.map((art) => (
+                <div
+                  key={art.id}
+                  className="group bg-gradient-to-br from-pink-900/30 to-purple-900/30 rounded-2xl p-4 border border-pink-500/20 hover:border-pink-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
+                >
+                  <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl mb-4 flex items-center justify-center text-6xl">
+                    {art.image}
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2 group-hover:text-pink-300 transition-colors">{art.title}</h3>
+                  <p className="text-gray-400 text-sm mb-3">by {art.artist}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-pink-400">
+                      <Heart className="h-4 w-4" />
+                      <span className="text-sm">{art.likes}</span>
+                    </div>
+                    <button className="p-2 bg-pink-500/20 text-pink-300 rounded-lg hover:bg-pink-500/30 transition-all">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <button className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
+                <ImagePlus className="h-5 w-5" /> Upload Your Art
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Workshops Tab */}
+        {activeTab === 'workshops' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <PenTool className="h-10 w-10 text-yellow-400" /> Live Workshops{' '}
+                <Zap className="h-8 w-8 text-yellow-400 animate-pulse" />
+              </h2>
+              <p className="text-xl text-gray-300">Learn, create, and grow together</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 rounded-2xl p-6 border border-yellow-500/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                    <PenTool className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Creative Writing Masterclass</h3>
+                    <p className="text-gray-400 text-sm">Live • Starting in 2 hours</p>
+                  </div>
+                </div>
+                <p className="text-gray-300 mb-4">
+                  Join renowned author Sarah Mitchell for an intensive session on character development and plot structure.
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-yellow-400 font-semibold">156 attending</span>
+                  <button className="px-4 py-2 bg-yellow-500/20 text-yellow-300 rounded-lg hover:bg-yellow-500/30 transition-all">Join Workshop</button>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-2xl p-6 border border-purple-500/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <Paintbrush2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Digital Art Techniques</h3>
+                    <p className="text-gray-400 text-sm">Tomorrow • 3:00 PM</p>
+                  </div>
+                </div>
+                <p className="text-gray-300 mb-4">Master the art of digital illustration with professional artist Alex Chen.</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-400 font-semibold">89 registered</span>
+                  <button className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition-all">Register Now</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* News Tab */}
+        {activeTab === 'news' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <Trophy className="h-10 w-10 text-red-400" /> Community News{' '}
+                <Award className="h-8 w-8 text-yellow-400 animate-bounce" />
+              </h2>
+              <p className="text-xl text-gray-300">Stay updated with latest happenings</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-2xl p-6 border border-red-500/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <Trophy className="h-6 w-6 text-yellow-400" />
+                  <span className="text-red-300 font-semibold">Contest Winner Announcement</span>
+                  <span className="text-gray-400 text-sm">2 hours ago</span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Monthly Writing Contest Results Are In!</h3>
+                <p className="text-gray-300">
+                  Congratulations to all participants! The winning entries showcased incredible creativity and storytelling prowess.
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-6 border border-blue-500/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <Sparkles className="h-6 w-6 text-blue-400" />
+                  <span className="text-blue-300 font-semibold">Platform Update</span>
+                  <span className="text-gray-400 text-sm">1 day ago</span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">New Features Released!</h3>
+                <p className="text-gray-300">
+                  We've added real-time collaboration tools, enhanced search functionality, and improved mobile experience.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-8 right-8">
+        <button className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center">
+          <PlusCircle className="h-8 w-8" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CommunityPage;

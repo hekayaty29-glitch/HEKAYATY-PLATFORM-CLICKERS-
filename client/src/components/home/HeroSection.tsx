@@ -56,18 +56,14 @@ export default function HeroSection() {
               asChild
               className="bg-amber-500 hover:bg-amber-600 text-brown-dark font-cinzel py-6 px-8 rounded-full"
             >
-              <Link href="/stories">
-                <a>Start Reading</a>
-              </Link>
+              <Link href="/stories" className="text-white">Start Reading</Link>
             </Button>
           </div>
           
           <div className="flex flex-wrap justify-center gap-3">
             {genres?.map((genre) => (
-              <Link key={genre.id} href={`/genres/${genre.id}`}>
-                <a className="genre-badge text-xs md:text-sm font-cinzel py-1 px-3 rounded-full cursor-pointer">
-                  {genre.name}
-                </a>
+              <Link key={genre.id} href={`/genres/${genre.id}`} className="genre-badge text-xs md:text-sm font-cinzel py-1 px-3 rounded-full cursor-pointer">
+                {genre.name}
               </Link>
             ))}
           </div>
@@ -78,9 +74,7 @@ export default function HeroSection() {
             asChild
             className="bg-amber-800/80 hover:bg-amber-800 text-amber-50 font-cinzel py-3 px-8 rounded-lg border border-amber-500/50 hover:border-amber-500"
           >
-            <Link href="/register?premium=true">
-              <a>Premium Adventure Awaits</a>
-            </Link>
+            <Link href="/register?premium=true">Premium Adventure Awaits</Link>
           </Button>
         </div>
       </div>

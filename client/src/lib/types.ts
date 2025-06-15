@@ -1,14 +1,35 @@
 // Extended types for frontend use
 
-export interface AuthUser {
+export interface UserStats {
+  storiesCount: number;
+  novelsCount: number;
+  followersCount: number;
+  followingCount: number;
+  readingHistoryCount?: number;
+  bookshelvesCount?: number;
+}
+
+export interface User {
   id: number;
   username: string;
   email: string;
   fullName: string;
   bio: string;
-  avatarUrl: string;
+  avatar: string;
   isPremium: boolean;
   isAuthor: boolean;
+  isAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+  stats?: UserStats;
+}
+
+export interface AuthUser extends Omit<User, 'stats'> {
+  /** Indicates if the user has administrative privileges */
+  isAdmin: boolean;
+  /** Authentication token for API requests */
+  token?: string;
 }
 
 export interface StoryAuthor {
@@ -24,6 +45,21 @@ export interface Genre {
   name: string;
   description: string;
   icon: string;
+}
+
+export interface Novel extends Omit<StoryCard, 'isShortStory'> {
+  isShortStory: false;
+  chapters?: Array<{
+    id: number;
+    title: string;
+    order: number;
+    isPublished: boolean;
+    wordCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  wordCount?: number;
+  chapterCount?: number;
 }
 
 export interface StoryCard {
@@ -46,6 +82,12 @@ export interface StoryCard {
 export interface StoryDetail extends StoryCard {
   content: string;
   isBookmarked: boolean;
+  /** Flag indicating this story belongs to Hekayaty Originals and is provided as a PDF */
+  isOriginal?: boolean;
+  /** Direct URL to the uploaded PDF */
+  pdfUrl?: string;
+  /** Optional soundtrack URL that should play alongside the PDF */
+  soundtrackUrl?: string;
 }
 
 export interface Rating {
@@ -91,6 +133,13 @@ export interface UserProfileUpdate {
   fullName?: string;
   bio?: string;
   avatarUrl?: string;
+}
+
+export interface ProfileUpdateData {
+  fullName: string;
+  bio: string;
+  avatar?: string;
+  isAuthor?: boolean;
 }
 
 export interface RatingFormData {

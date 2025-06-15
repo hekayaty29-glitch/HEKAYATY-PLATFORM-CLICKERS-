@@ -7,25 +7,23 @@ export default function SignInPage() {
   return (
     <>
       <Helmet>
-        <title>Sign In - TaleKeeper</title>
-        <meta name="description" content="Sign in to your TaleKeeper account to continue your reading journey." />
+        <title>Sign In - HEKAYATY</title>
+        <meta name="description" content="Sign in to your HEKAYATY account to continue your reading journey." />
       </Helmet>
       
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-amber-50/50">
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-gradient-to-b from-brown-dark to-brown-900">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Link href="/">
-              <a className="inline-block text-3xl font-cinzel font-bold">
-                <span className="text-amber-500">Tale</span>Keeper
-              </a>
+            <Link href="/" className="inline-block text-3xl font-cinzel font-bold">
+              <span className="text-amber-500">Heka</span>yaty
             </Link>
-            <h1 className="text-2xl font-cinzel font-bold text-brown-dark mt-6">Welcome Back</h1>
+            <h1 className="text-2xl font-cinzel font-bold text-white mt-6">Welcome Back</h1>
             <p className="text-gray-600 mt-2 font-cormorant text-lg italic">Sign in to continue your reading journey</p>
           </div>
           
           <Card className="border-amber-500/50 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-center text-brown-dark">Sign In</CardTitle>
+              <CardTitle className="text-center text-amber-600">Sign In</CardTitle>
               <CardDescription className="text-center">
                 Enter your credentials to access your account
               </CardDescription>
@@ -36,10 +34,8 @@ export default function SignInPage() {
             <CardFooter className="flex flex-col space-y-4 border-t pt-5 border-amber-500/20">
               <div className="text-center text-sm">
                 Don't have an account?{" "}
-                <Link href="/register">
-                  <a className="text-amber-500 hover:text-amber-700 font-medium">
-                    Create an account
-                  </a>
+                <Link href="/register" className="text-amber-500 hover:text-amber-700 font-medium">
+                  Create an account
                 </Link>
               </div>
             </CardFooter>

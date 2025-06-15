@@ -312,3 +312,10 @@ html {
   font-size: var(--reader-font-size);
   text-indent: 1.5em; /* First line paragraph indent */
 }
+
+.parchment-page {
+  background-image: url('/assets/parchment.png');
+  background-size: cover;
+  background-position: center;
+  @apply bg-no-repeat bg-[#fbf2c6] shadow-lg border border-amber-300 rounded-md p-6 md:p-10 max-w-3xl mx-auto;
+}

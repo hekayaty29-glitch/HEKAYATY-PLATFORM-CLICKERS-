@@ -17,10 +17,8 @@ export default function TopRatedSection() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Top Rated This Month</h2>
-            <Link href="/top-rated">
-              <a className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
-                View All <ChevronRight className="ml-1 h-4 w-4" />
-              </a>
+            <Link href="/top-rated" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
+              View All <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
           
@@ -50,10 +48,8 @@ export default function TopRatedSection() {
       <div className="container mx-auto max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Top Rated This Month</h2>
-          <Link href="/top-rated">
-            <a className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
-              View All <ChevronRight className="ml-1 h-4 w-4" />
-            </a>
+          <Link href="/top-rated" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
+            View All <ChevronRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
         
@@ -65,23 +61,19 @@ export default function TopRatedSection() {
               <div key={story.id} className="story-card bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="relative">
                   <Link href={`/story/${story.id}`}>
-                    <a>
-                      <img 
-                        src={story.coverImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
-                        alt={`Cover for ${story.title}`} 
-                        className="w-full h-44 object-cover" 
-                      />
-                    </a>
+                    <img 
+                      src={story.coverImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
+                      alt={`Cover for ${story.title}`} 
+                      className="w-full h-44 object-cover" 
+                    />
                   </Link>
                   <div className="absolute top-0 left-0 bg-amber-500 text-white px-3 py-1 font-bold font-cinzel text-sm">
                     #{index + 1}
                   </div>
                 </div>
                 <div className="p-4">
-                  <Link href={`/story/${story.id}`}>
-                    <a className="hover:text-amber-700">
-                      <h3 className="font-cinzel text-lg font-bold mb-1 truncate">{story.title}</h3>
-                    </a>
+                  <Link href={`/story/${story.id}`} className="hover:text-amber-700">
+                    <h3 className="font-cinzel text-lg font-bold mb-1 truncate">{story.title}</h3>
                   </Link>
                   
                   <div className="flex items-center mb-2">
@@ -104,9 +96,7 @@ export default function TopRatedSection() {
                   </p>
                   
                   <Button asChild className="w-full bg-amber-800 hover:bg-amber-500 text-white py-2 rounded-md transition-colors text-sm font-cinzel">
-                    <Link href={`/story/${story.id}`}>
-                      <a>Read Now</a>
-                    </Link>
+                    <Link href={`/story/${story.id}`}>Read Now</Link>
                   </Button>
                 </div>
               </div>

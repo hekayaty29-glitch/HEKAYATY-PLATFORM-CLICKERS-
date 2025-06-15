@@ -36,10 +36,8 @@ export default function FeaturedStories() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Featured Stories</h2>
-            <Link href="/stories">
-              <a className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
-                View All <ChevronRight className="ml-1 h-4 w-4" />
-              </a>
+            <Link href="/stories" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
+              View All <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
           
@@ -72,10 +70,8 @@ export default function FeaturedStories() {
       <div className="container mx-auto max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Featured Stories</h2>
-          <Link href="/stories">
-            <a className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
-              View All <ChevronRight className="ml-1 h-4 w-4" />
-            </a>
+          <Link href="/stories" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
+            View All <ChevronRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
         
@@ -94,25 +90,21 @@ export default function FeaturedStories() {
             {displayedStories.map((story) => (
               <div key={story.id} className="story-card bg-amber-50 rounded-lg shadow-lg overflow-hidden">
                 <Link href={`/story/${story.id}`}>
-                  <a>
-                    <img 
-                      src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
-                      alt={`Cover for ${story.title}`} 
-                      className="w-full h-48 object-cover" 
-                    />
-                  </a>
+                  <img 
+                    src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
+                    alt={`Cover for ${story.title}`} 
+                    className="w-full h-48 object-cover" 
+                  />
                 </Link>
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex flex-wrap gap-1">
                       {story.genres.slice(0, 2).map((genre) => (
-                        <Link key={genre.id} href={`/genres/${genre.id}`}>
-                          <a className={cn(
-                            "text-xs font-cinzel text-white px-2 py-1 rounded",
-                            genre.id % 2 === 0 ? "bg-amber-500" : "bg-amber-800"
-                          )}>
-                            {genre.name}
-                          </a>
+                        <Link key={genre.id} href={`/genres/${genre.id}`} className={cn(
+                          "text-xs font-cinzel text-white px-2 py-1 rounded",
+                          genre.id % 2 === 0 ? "bg-amber-500" : "bg-amber-800"
+                        )}>
+                          {genre.name}
                         </Link>
                       ))}
                     </div>
@@ -122,10 +114,8 @@ export default function FeaturedStories() {
                     </div>
                   </div>
                   
-                  <Link href={`/story/${story.id}`}>
-                    <a className="hover:text-amber-700">
-                      <h3 className="font-cinzel text-lg font-bold mb-1">{story.title}</h3>
-                    </a>
+                  <Link href={`/story/${story.id}`} className="hover:text-amber-700">
+                    <h3 className="font-cinzel text-lg font-bold mb-1">{story.title}</h3>
                   </Link>
                   
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -133,17 +123,15 @@ export default function FeaturedStories() {
                   </p>
                   
                   <div className="flex justify-between items-center">
-                    <Link href={`/profile/${story.author?.id}`}>
-                      <a className="flex items-center group">
-                        <img 
-                          src={story.author?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
-                          className="w-8 h-8 rounded-full object-cover" 
-                          alt={`${story.author?.fullName}'s avatar`} 
-                        />
-                        <span className="ml-2 text-sm font-medium group-hover:text-amber-700">
-                          {story.author?.fullName}
-                        </span>
-                      </a>
+                    <Link href={`/profile/${story.author?.id}`} className="flex items-center group">
+                      <img 
+                        src={story.author?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
+                        className="w-8 h-8 rounded-full object-cover" 
+                        alt={`${story.author?.fullName}'s avatar`} 
+                      />
+                      <span className="ml-2 text-sm font-medium group-hover:text-amber-700">
+                        {story.author?.fullName}
+                      </span>
                     </Link>
                     <Button variant="ghost" size="icon" className="text-amber-500 hover:text-amber-700 transition-colors">
                       <Bookmark className="h-5 w-5" />

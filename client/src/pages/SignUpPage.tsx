@@ -17,22 +17,20 @@ export default function SignUpPage() {
   return (
     <>
       <Helmet>
-        <title>Sign Up - TaleKeeper</title>
-        <meta name="description" content="Create your TaleKeeper account to start reading and publishing fantasy stories." />
+        <title>Sign Up - HEKAYATY</title>
+        <meta name="description" content="Create your HEKAYATY account to start reading and publishing fantasy stories." />
       </Helmet>
       
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-amber-50/50">
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-gradient-to-b from-brown-dark to-brown-900">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Link href="/">
-              <a className="inline-block text-3xl font-cinzel font-bold">
-                <span className="text-amber-500">Tale</span>Keeper
-              </a>
+            <Link href="/" className="inline-block text-3xl font-cinzel font-bold">
+              <span className="text-amber-500">Heka</span>yaty
             </Link>
-            <h1 className="text-2xl font-cinzel font-bold text-brown-dark mt-6">
-              {isPremium ? "Join TaleKeeper Premium" : "Create Your Account"}
+            <h1 className="text-2xl font-cinzel font-bold text-white mt-6">
+              {isPremium ? "Join HEKAYATY Premium" : "Create Your Account"}
             </h1>
-            <p className="text-gray-600 mt-2 font-cormorant text-lg italic">
+            <p className="text-amber-400 mt-2 font-cormorant text-lg italic">
               {isPremium 
                 ? "Begin your premium storytelling journey today" 
                 : "Join our community of readers and writers"}
@@ -41,7 +39,7 @@ export default function SignUpPage() {
           
           <Card className="border-amber-500/50 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-center text-brown-dark">Sign Up</CardTitle>
+              <CardTitle className="text-center text-amber-500">Sign Up</CardTitle>
               <CardDescription className="text-center">
                 Enter your details to create your account
               </CardDescription>
@@ -52,10 +50,8 @@ export default function SignUpPage() {
             <CardFooter className="flex flex-col space-y-4 border-t pt-5 border-amber-500/20">
               <div className="text-center text-sm">
                 Already have an account?{" "}
-                <Link href="/login">
-                  <a className="text-amber-500 hover:text-amber-700 font-medium">
-                    Sign in
-                  </a>
+                <Link href="/login" className="text-amber-500 hover:text-amber-700 font-medium">
+                  Sign in
                 </Link>
               </div>
             </CardFooter>

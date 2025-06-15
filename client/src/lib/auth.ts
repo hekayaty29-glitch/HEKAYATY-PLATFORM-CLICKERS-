@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   upgradeToPremium: () => Promise<void>;
+  updateUser: (user: Partial<AuthUser>) => void;
 }
 
 interface RegisterData {
@@ -31,17 +32,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Fetch current user
   const { data: user, isLoading } = useQuery({
-    queryKey: ["/api/auth/me"]
+    queryKey: ['/api/auth/me']
   });
   
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/auth/login", { username, password });
+      const field_key = username.includes("@") ? "email" : "username";
+      const payload: Record<string, string> = { field_key, field_value: username, password };
+      if (field_key === "email") {
+        payload.email = username;
+      }
+      const res = await apiRequest("POST", "/auth/login", payload);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       setIsAuthenticated(true);
       toast({
         title: "Welcome back!",
@@ -60,11 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      const res = await apiRequest("POST", "/api/auth/register", userData);
+      const { username, email, password } = userData;
+      const res = await apiRequest("POST", "/auth/signup", { username, email, password });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       setIsAuthenticated(true);
       toast({
         title: "Account created!",
@@ -112,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       toast({
         title: "Upgrade successful!",
         description: "You now have premium access to all features.",
@@ -149,6 +156,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // Update user data in context
+  const updateUser = (userData: Partial<AuthUser>) => {
+    if (user) {
+      queryClient.setQueryData(['/api/auth/me'], { ...user, ...userData });
+    }
+  };
+
   // Create the context value object
   const value = {
     user: user as AuthUser | null,
@@ -157,7 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    upgradeToPremium
+    upgradeToPremium,
+    updateUser
   };
 
   // Return the provider with JSX

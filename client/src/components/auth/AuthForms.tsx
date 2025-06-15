@@ -67,7 +67,7 @@ export function LoginForm() {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-cinzel text-brown-dark">Username</FormLabel>
+              <FormLabel className="font-cinzel text-amber-600">Username</FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Enter your username" 
@@ -85,7 +85,7 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-cinzel text-brown-dark">Password</FormLabel>
+              <FormLabel className="font-cinzel text-amber-500">Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input 
@@ -138,8 +138,14 @@ const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
   fullName: z.string().min(2, "Full name is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Za-z]/, "Password must contain at least one letter"),
+  confirmPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Za-z]/, "Password must contain at least one letter"),
   agreeTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions",
   }),
@@ -215,7 +221,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-cinzel text-brown-dark">Full Name</FormLabel>
+              <FormLabel className="font-cinzel text-amber-400">Full Name</FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Enter your full name" 
@@ -234,7 +240,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-cinzel text-brown-dark">Username</FormLabel>
+                <FormLabel className="font-cinzel text-amber-400">Username</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="Choose a username" 
@@ -252,7 +258,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-cinzel text-brown-dark">Email</FormLabel>
+                <FormLabel className="font-cinzel text-amber-400">Email</FormLabel>
                 <FormControl>
                   <Input 
                     type="email"
@@ -272,7 +278,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-cinzel text-brown-dark">Password</FormLabel>
+              <FormLabel className="font-cinzel text-amber-500">Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input 
@@ -300,7 +306,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-cinzel text-brown-dark">Confirm Password</FormLabel>
+              <FormLabel className="font-cinzel text-amber-500">Confirm Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input 

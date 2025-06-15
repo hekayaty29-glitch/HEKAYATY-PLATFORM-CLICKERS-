@@ -16,6 +16,7 @@ import {
 import StoryCard from "@/components/story/StoryCard";
 import { StoryCard as StoryCardType, Genre } from "@/lib/types";
 import { Search, SlidersHorizontal, AlertTriangle } from "lucide-react";
+import Container from "@/components/layout/Container";
 
 export default function GenreStoriesPage() {
   const [, params] = useRoute("/genres/:id");
@@ -97,7 +98,7 @@ export default function GenreStoriesPage() {
       </Helmet>
       
       <div className="bg-gradient-to-b from-amber-500/5 to-amber-50/5 pt-8 pb-16">
-        <div className="container mx-auto max-w-6xl px-4">
+        <Container>
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="font-cinzel text-3xl font-bold text-brown-dark">
@@ -203,13 +204,13 @@ export default function GenreStoriesPage() {
               </Card>
               
               {storiesLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {Array(6).fill(0).map((_, i) => (
                     <div key={i} className="animate-pulse bg-amber-50/80 rounded-lg h-80 border border-amber-500/20 shadow-sm"></div>
                   ))}
                 </div>
               ) : sortedStories.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                   {sortedStories.map(story => (
                     <StoryCard key={story.id} story={story} />
                   ))}
@@ -227,7 +228,7 @@ export default function GenreStoriesPage() {
               )}
             </>
           )}
-        </div>
+        </Container>
       </div>
     </>
   );

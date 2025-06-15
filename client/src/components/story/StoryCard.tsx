@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 interface StoryCardProps {
   story: StoryCardType;
   isBookmarked?: boolean;
+  isNovel?: boolean;
+  isPurchased?: boolean;
   variant?: "horizontal" | "vertical" | "compact";
   showActionButton?: boolean;
 }
@@ -19,6 +21,8 @@ interface StoryCardProps {
 export default function StoryCard({ 
   story, 
   isBookmarked = false, 
+  isNovel = false,
+  isPurchased = false,
   variant = "vertical",
   showActionButton = true
 }: StoryCardProps) {
@@ -80,7 +84,7 @@ export default function StoryCard({
             <img 
               src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
               alt={`Cover for ${story.title}`} 
-              className="w-full h-48 md:h-full object-cover" 
+              className="w-full h-40 sm:h-48 md:h-full object-cover" loading="lazy" decoding="async" 
             />
           </a>
         </Link>
@@ -174,7 +178,7 @@ export default function StoryCard({
             <img 
               src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
               alt={`Cover for ${story.title}`} 
-              className="w-12 h-12 object-cover rounded" 
+              className="w-12 h-12 object-cover rounded" loading="lazy" decoding="async" 
             />
           </a>
         </Link>
@@ -220,7 +224,7 @@ export default function StoryCard({
           <img 
             src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
             alt={`Cover for ${story.title}`} 
-            className="w-full h-48 object-cover" 
+            className="w-full h-40 sm:h-48 md:h-60 object-cover" loading="lazy" decoding="async" 
           />
         </a>
       </Link>

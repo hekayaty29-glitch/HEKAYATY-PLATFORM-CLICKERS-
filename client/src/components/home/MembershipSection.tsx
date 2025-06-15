@@ -20,27 +20,23 @@ export default function MembershipSection() {
           {/* Free Tier */}
           <div className="bg-amber-50 bg-opacity-10 backdrop-filter backdrop-blur-sm rounded-lg p-6 border border-amber-500">
             <div className="text-center mb-6">
-              <h3 className="font-cinzel text-2xl font-bold mb-2">Free Tier</h3>
-              <p className="text-lg font-cormorant">Begin your storytelling journey</p>
+              <h3 className="font-cinzel text-2xl font-bold mb-2">The Traveler</h3>
+              <p className="text-lg font-cormorant">Embark on your adventure</p>
               <p className="text-3xl font-bold mt-4">$0</p>
             </div>
             
             <ul className="space-y-3 mb-8">
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Publish 1 full-length novel</span>
+                <span>Contains ads</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Publish 1 short story</span>
+                <span>Download up to 2 novels per month</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Basic reader analytics</span>
-              </li>
-              <li className="flex items-start">
-                <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Community forum access</span>
+                <span>Access to community forums</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
@@ -60,9 +56,7 @@ export default function MembershipSection() {
               )
             ) : (
               <Button asChild className="w-full bg-amber-500 hover:bg-amber-800 text-amber-50 font-cinzel py-3 rounded-md transition-colors">
-                <Link href="/register">
-                  <a>Get Started</a>
-                </Link>
+                <Link href="/register">Get Started</Link>
               </Button>
             )}
           </div>
@@ -74,35 +68,47 @@ export default function MembershipSection() {
             </div>
             
             <div className="text-center mb-6">
-              <h3 className="font-cinzel text-2xl font-bold mb-2">Premium Tier</h3>
-              <p className="text-lg font-cormorant">Unleash your full potential</p>
-              <p className="text-3xl font-bold mt-4">$9.99<span className="text-sm font-normal">/month</span></p>
+              <h3 className="font-cinzel text-2xl font-bold mb-2">Lord of the Castle</h3>
+              <p className="text-lg font-cormorant">Rule the literary realm</p>
+              <p className="text-3xl font-bold mt-4">$6.99<span className="text-sm font-normal">/month</span></p>
             </div>
             
             <ul className="space-y-3 mb-8">
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span><strong>Unlimited</strong> novels & stories</span>
+                <span>No ads</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Advanced reader analytics</span>
+                <span>Early access to new novels & stories</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Priority story featuring</span>
+                <span>Exclusive novels</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Early access to new features</span>
+                <span>Download up to 5 novels a month</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Author marketing tools</span>
+                <span>Promote subscribers' published novels</span>
               </li>
               <li className="flex items-start">
                 <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
-                <span>Ad-free reading experience</span>
+                <span>Special subscriber forums & clubs</span>
+              </li>
+              <li className="flex items-start">
+                <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
+                <span>Special badges</span>
+              </li>
+              <li className="flex items-start">
+                <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
+                <span>Exclusive offers in store</span>
+              </li>
+              <li className="flex items-start">
+                <Check className="text-amber-500 mt-1 mr-2 h-4 w-4" />
+                <span>Exclusive events</span>
               </li>
             </ul>
             
@@ -121,9 +127,7 @@ export default function MembershipSection() {
               )
             ) : (
               <Button asChild className="w-full bg-amber-200 hover:bg-amber-500 text-brown-dark font-cinzel py-3 rounded-md transition-colors font-bold">
-                <Link href="/register?premium=true">
-                  <a>Upgrade Now</a>
-                </Link>
+                <Link href="/register?premium=true">Upgrade Now</Link>
               </Button>
             )}
           </div>

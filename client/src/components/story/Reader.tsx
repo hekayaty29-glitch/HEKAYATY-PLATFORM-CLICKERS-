@@ -8,7 +8,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Layers,
-  BookMarked
+  BookMarked,
+  Music
 } from "lucide-react";
 
 interface ReaderProps {
@@ -18,9 +19,11 @@ interface ReaderProps {
   storyId?: number;
   onBookmark?: () => void;
   isBookmarked?: boolean;
+  /** Optional background soundtrack URL for this story */
+  audioUrl?: string;
 }
 
-export function Reader({ title, author, content, storyId, onBookmark, isBookmarked = false }: ReaderProps) {
+export function Reader({ title, author, content, storyId, onBookmark, isBookmarked = false, audioUrl }: ReaderProps) {
   // Reader preferences with defaults
   const [preferences, setPreferences] = useState<ReaderPreferences>({
     fontSize: "md",
@@ -140,6 +143,10 @@ export function Reader({ title, author, content, storyId, onBookmark, isBookmark
     ${preferences.viewMode === "paginated" ? "reader-paginated" : ""}
   `;
 
+  // CSS classes to mimic book paper appearance
+  const paperClasses =
+    "bg-[#FBF8F1] shadow-lg border border-amber-200 rounded-md mx-auto p-6 md:p-10 max-w-3xl lg:max-w-4xl";
+
   // Format content based on view mode
   const formattedContent = preferences.viewMode === "paginated" 
     ? renderPaginatedContent() 
@@ -174,8 +181,19 @@ export function Reader({ title, author, content, storyId, onBookmark, isBookmark
         />
       </div>
 
+      {/* Optional soundtrack */}
+      {audioUrl && (
+        <div className="mb-6 flex items-center gap-3">
+          <Music className="h-5 w-5 text-amber-600" />
+          <audio controls className="w-full">
+            <source src={audioUrl} />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      )}
+      
       {/* Story title and actions */}
-      <div className={`${readerClasses} mb-8`}>
+      <div className={`${readerClasses} ${paperClasses} mb-8`}>
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">{title}</h1>

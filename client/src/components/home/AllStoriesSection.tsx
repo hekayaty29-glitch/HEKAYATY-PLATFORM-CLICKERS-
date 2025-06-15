@@ -1,0 +1,64 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, BookOpen } from "lucide-react";
+import StoryCard from "@/components/story/StoryCard";
+import { StoryCard as StoryCardType } from "@/lib/types";
+
+export default function AllStoriesSection() {
+  const { data: stories, isLoading } = useQuery<StoryCardType[]>({
+    queryKey: ["/api/stories"],
+  });
+
+  const [query, setQuery] = useState("");
+  const filtered = (stories ?? []).filter((s) =>
+    s.title.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <section className="py-16 px-4 bg-gradient-to-r from-midnight-blue to-brown-dark text-amber-50">
+      <div className="container mx-auto max-w-6xl">
+        {/* Heading */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <BookOpen className="h-6 w-6 text-amber-400" />
+          <h2 className="font-cinzel text-3xl md:text-4xl font-bold text-center">
+            Browse All Stories
+          </h2>
+          <BookOpen className="h-6 w-6 text-amber-400" />
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md mx-auto mb-10">
+          <input
+            type="text"
+            placeholder="Search stories..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full py-3 pl-4 pr-10 rounded-full bg-amber-50/10 placeholder-amber-100 text-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+          <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-400" />
+        </div>
+
+        {/* Grid */}
+        {isLoading ? (
+          <p className="text-center">Loading stories...</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {filtered.slice(0, 6).map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+          </div>
+        )}
+
+        {/* Link to full browse page */}
+        <div className="text-center mt-10">
+          <a
+            href="/stories"
+            className="inline-block bg-amber-500 hover:bg-amber-600 text-amber-50 font-cinzel py-2 px-6 rounded-full transition-colors"
+          >
+            View All Stories
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}

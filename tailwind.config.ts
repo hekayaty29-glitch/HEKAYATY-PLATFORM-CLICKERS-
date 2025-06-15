@@ -1,10 +1,19 @@
 import type { Config } from "tailwindcss";
+import animatePlugin from "tailwindcss-animate";
+import typographyPlugin from "@tailwindcss/typography";
 
 export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      screens: {
+        xs: '360px', // small phones
+        '2xl': '1536px'
+      },
+      spacing: {
+        safe: 'env(safe-area-inset)'
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -86,5 +95,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [animatePlugin, typographyPlugin],
 } satisfies Config;

@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn, formatDate, calculateReadTime, getRatingStars } from "@/lib/utils";
 import { Reader } from "@/components/story/Reader";
+import OriginalPdfViewer from "@/components/story/OriginalPdfViewer";
 import {
   Form,
   FormControl,
@@ -211,7 +212,19 @@ export default function StoryPage() {
       </div>
     );
   }
-  
+
+  // If this is an Original with a PDF, show custom viewer
+  if (story.isOriginal && story.pdfUrl) {
+    return (
+      <OriginalPdfViewer
+        title={story.title}
+        author={story.author?.fullName || "Unknown"}
+        pdfUrl={story.pdfUrl}
+        audioUrl={story.soundtrackUrl}
+      />
+    );
+  }
+
   const readTime = calculateReadTime(story.content);
   const starsRating = getRatingStars(story.averageRating);
   

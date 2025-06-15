@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/lib/auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings, Edit, User, CheckCircle } from "lucide-react";
+import { Camera, Edit, CheckCircle, Crown, Star, PenTool, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,7 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 const profileUpdateSchema = z.object({
   fullName: z.string().min(1, "Name is required"),
   bio: z.string().max(500, "Bio must be 500 characters or less"),
-  avatarUrl: z.string().url("Please enter a valid image URL").or(z.string().length(0)),
+  avatar: z.string().url("Please enter a valid image URL").or(z.string().length(0)),
 });
 
 interface ProfileHeaderProps {
@@ -41,36 +40,49 @@ interface ProfileHeaderProps {
     username: string;
     fullName: string;
     bio: string;
-    avatarUrl: string;
+    avatar: string;
     isPremium: boolean;
     isAuthor: boolean;
     email?: string;
+    createdAt?: string;
+    stats?: {
+      storiesCount: number;
+      novelsCount: number;
+      followersCount: number;
+      followingCount: number;
+    };
   };
   isOwnProfile: boolean;
   isPremium: boolean;
-  isAuthorPage?: boolean;
+  onPhotoUpload?: (file: File) => Promise<void>;
 }
 
-export default function ProfileHeader({ user, isOwnProfile, isPremium, isAuthorPage = false }: ProfileHeaderProps) {
+export default function ProfileHeader({ 
+  user, 
+  isOwnProfile, 
+  isPremium, 
+  onPhotoUpload 
+}: ProfileHeaderProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const form = useForm<z.infer<typeof profileUpdateSchema>>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
       fullName: user.fullName,
       bio: user.bio,
-      avatarUrl: user.avatarUrl,
+      avatar: user.avatar,
     },
   });
   
   const updateProfileMutation = useMutation({
     mutationFn: async (data: z.infer<typeof profileUpdateSchema>) => {
-      const res = await apiRequest("PUT", `/api/users/${user.id}`, data);
+      const res = await apiRequest("PATCH", `/api/users/${user.id}`, data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       setIsEditOpen(false);
@@ -78,6 +90,7 @@ export default function ProfileHeader({ user, isOwnProfile, isPremium, isAuthorP
         title: "Profile updated",
         description: "Your profile has been successfully updated",
       });
+      return data;
     },
     onError: (error: Error) => {
       toast({
@@ -88,115 +101,230 @@ export default function ProfileHeader({ user, isOwnProfile, isPremium, isAuthorP
     },
   });
   
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      if (onPhotoUpload) {
+        await onPhotoUpload(file);
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload the profile photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
   const onSubmit = (data: z.infer<typeof profileUpdateSchema>) => {
     updateProfileMutation.mutate(data);
   };
   
+  const stats = [
+    { label: 'Stories', value: user.stats?.storiesCount || 0 },
+    { label: 'Novels', value: user.stats?.novelsCount || 0 },
+    { label: 'Followers', value: user.stats?.followersCount || 0 },
+    { label: 'Following', value: user.stats?.followingCount || 0 },
+  ];
+  
   return (
-    <div className="bg-amber-50/80 rounded-lg border border-amber-500/30 p-6 shadow-sm">
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-        <div className="relative">
-          <div className="w-32 h-32 rounded-full overflow-hidden bg-amber-200 border-4 border-amber-500/30">
+    <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl border border-amber-200 p-6 shadow-sm">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+        {/* Profile Photo */}
+        <div className="relative group">
+          <div className="w-36 h-36 rounded-full overflow-hidden bg-amber-200 border-4 border-amber-400/30 shadow-lg">
             <img 
-              src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=D68C47&color=fff`} 
+              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=D68C47&color=fff`} 
               alt={`${user.fullName}'s avatar`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async"
             />
           </div>
+          
+          {/* Premium Badge */}
           {isPremium && (
-            <Badge className="absolute bottom-0 right-0 bg-gold-rich text-brown-dark border-2 border-white">
-              <CheckCircle className="h-3 w-3 mr-1" /> Premium
+            <Badge className="absolute -top-2 right-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white border-2 border-white shadow-lg px-3 py-1 font-medium">
+              <Crown className="h-4 w-4 mr-1.5" /> Premium
             </Badge>
+          )}
+          
+          {/* Author Badge */}
+          {user.isAuthor && (
+            <Badge className="absolute -bottom-2 left-2 bg-gradient-to-r from-amber-500 to-amber-700 text-white border-2 border-white shadow-lg px-3 py-1 font-medium">
+              <PenTool className="h-4 w-4 mr-1.5" /> Author
+            </Badge>
+          )}
+          
+          {/* Photo Upload */}
+          {isOwnProfile && (
+            <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <Camera className="h-8 w-8 text-white" />
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </label>
           )}
         </div>
         
+        {/* Profile Info */}
         <div className="flex-1 text-center md:text-left">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <h1 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">{user.fullName}</h1>
-              <p className="text-gray-500">@{user.username}</p>
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                <h1 className="font-cinzel text-3xl md:text-4xl font-bold text-amber-900">
+                  {user.fullName}
+                </h1>
+                {isPremium && (
+                  <Star className="h-6 w-6 text-amber-500 fill-amber-500" />
+                )}
+              </div>
+              <p className="text-amber-700/90 font-medium">@{user.username}</p>
+              
+              {/* Stats */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="text-center">
+                    <p className="text-2xl font-bold text-amber-900">{stat.value}</p>
+                    <p className="text-sm text-amber-700/80">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
             
             {isOwnProfile && (
               <div className="flex justify-center md:justify-end">
                 <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="border-amber-500 text-brown-dark">
+                    <Button 
+                      variant="outline" 
+                      className="bg-white/80 border-amber-400 text-amber-700 hover:bg-white hover:text-amber-800 hover:border-amber-500 transition-all shadow-sm"
+                    >
                       <Edit className="mr-2 h-4 w-4" />
                       Edit Profile
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-amber-50 border-amber-500">
+                  <DialogContent className="bg-amber-50 border-amber-400 rounded-lg">
                     <DialogHeader>
-                      <DialogTitle className="font-cinzel text-brown-dark">Edit Your Profile</DialogTitle>
-                      <DialogDescription>
-                        Make changes to your profile information.
+                      <DialogTitle className="font-cinzel text-2xl text-amber-900">
+                        Edit Your Profile
+                      </DialogTitle>
+                      <DialogDescription className="text-amber-800/80">
+                        Update your profile information and preferences
                       </DialogDescription>
                     </DialogHeader>
                     
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                          control={form.control}
-                          name="fullName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="font-cinzel">Full Name</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Your name" 
-                                  className="border-amber-500/50 focus:border-amber-500"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="space-y-6">
+                          <FormField
+                            control={form.control}
+                            name="fullName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-amber-900">Full Name</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Your name" 
+                                    className="border-amber-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-rose-600" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="bio"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-amber-900">Bio</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Tell us about yourself..." 
+                                    className="h-32 border-amber-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-rose-600" />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="avatar"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-amber-900">Avatar URL</FormLabel>
+                                <FormControl>
+                                  <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                      <img 
+                                        src={field.value || "/default-avatar.png"} 
+                                        alt="Profile preview"
+                                        className="h-16 w-16 rounded-full border-2 border-amber-200 object-cover"
+                                      />
+                                      <label 
+                                        className="absolute -bottom-1 -right-1 bg-amber-500 text-white p-1 rounded-full cursor-pointer hover:bg-amber-600 transition-colors"
+                                        title="Upload new photo"
+                                      >
+                                        <Camera className="h-3.5 w-3.5" />
+                                        <input 
+                                          type="file" 
+                                          className="hidden" 
+                                          accept="image/*"
+                                          onChange={handleFileChange}
+                                        />
+                                      </label>
+                                    </div>
+                                    <Input 
+                                      placeholder="Or paste image URL" 
+                                      className="flex-1 border-amber-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage className="text-rose-600" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
-                        <FormField
-                          control={form.control}
-                          name="bio"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="font-cinzel">Bio</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Tell us about yourself..." 
-                                  className="h-32 border-amber-500/50 focus:border-amber-500"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="avatarUrl"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="font-cinzel">Avatar URL</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="https://example.com/your-avatar.jpg" 
-                                  className="border-amber-500/50 focus:border-amber-500"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <DialogFooter>
+                        <DialogFooter className="border-t border-amber-200 pt-4">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsEditOpen(false)}
+                            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                          >
+                            Cancel
+                          </Button>
                           <Button 
                             type="submit" 
-                            className="bg-amber-500 hover:bg-amber-600 text-white"
+                            className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
                             disabled={updateProfileMutation.isPending}
                           >
-                            Save Changes
+                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                           </Button>
                         </DialogFooter>
                       </form>
@@ -210,7 +338,7 @@ export default function ProfileHeader({ user, isOwnProfile, isPremium, isAuthorP
           <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
             <Badge variant="outline" className="bg-amber-50 border-amber-500 text-brown-dark">
               <User className="h-3 w-3 mr-1" />
-              {isAuthorPage ? 'Author' : (user.isAuthor ? 'Author' : 'Reader')}
+              {user.isAuthor ? 'Author' : 'Reader'}
             </Badge>
             
             {user.isPremium && (

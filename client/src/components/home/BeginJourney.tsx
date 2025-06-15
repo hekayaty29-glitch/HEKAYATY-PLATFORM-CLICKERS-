@@ -14,22 +14,16 @@ export default function BeginJourney() {
         <div className="flex flex-col md:flex-row gap-4 justify-center">
           {isAuthenticated ? (
             <Button asChild className="bg-brown-dark hover:bg-amber-500 text-amber-50 font-cinzel py-3 px-8 rounded-md transition-colors">
-              <Link href="/publish">
-                <a>Start Writing</a>
-              </Link>
+              <Link href="/publish">Start Writing</Link>
             </Button>
           ) : (
             <Button asChild className="bg-brown-dark hover:bg-amber-500 text-amber-50 font-cinzel py-3 px-8 rounded-md transition-colors">
-              <Link href="/register">
-                <a>Create Account</a>
-              </Link>
+              <Link href="/register">Create Account</Link>
             </Button>
           )}
           
           <Button asChild variant="outline" className="bg-transparent border-2 border-amber-500 hover:bg-amber-500 text-brown-dark hover:text-amber-50 font-cinzel py-3 px-8 rounded-md transition-colors">
-            <Link href="/stories">
-              <a>Explore Stories</a>
-            </Link>
+            <Link href="/stories">Explore Stories</Link>
           </Button>
         </div>
       </div>
