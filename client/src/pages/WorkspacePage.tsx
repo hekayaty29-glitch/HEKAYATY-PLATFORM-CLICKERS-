@@ -5,13 +5,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Check, Pencil, Trash2, UploadCloud } from "lucide-react";
 
-interface Story {
+interface WorkItemBase {
   id: number;
   title: string;
   isPublished: boolean;
   createdAt: string;
+  averageRating?: number; // only populated for stories
+}
+
+interface Story extends WorkItemBase {
+  type: "story";
   averageRating?: number;
 }
+
+interface Comic extends WorkItemBase {
+  type: "comic";
+}
+
+type WorkItem = Story | Comic;
 
 export default function WorkspacePage() {
   const { user, isAuthenticated } = useAuth();
@@ -24,13 +35,28 @@ export default function WorkspacePage() {
   const fetchMyStories = async (): Promise<Story[]> => {
     const res = await fetch(`/api/stories?authorId=${user.id}&includeDrafts=true`);
     if (!res.ok) throw new Error("Failed to fetch stories");
-    return res.json();
+    const stories = await res.json();
+    return stories.map((s: any) => ({ ...s, type: "story" }));
   };
 
-  const { data: stories, isLoading } = useQuery({
+  const fetchMyComics = async (): Promise<Comic[]> => {
+    const res = await fetch(`/api/comics?authorId=${user.id}&includeDrafts=true`);
+    if (!res.ok) throw new Error("Failed to fetch comics");
+    const comics = await res.json();
+    return comics.map((c: any) => ({ ...c, type: "comic" }));
+  };
+
+  const { data: stories, isLoading: loadingStories } = useQuery({
     queryKey: ["my-stories"],
     queryFn: fetchMyStories,
   });
+
+  const { data: comics, isLoading: loadingComics } = useQuery({
+    queryKey: ["my-comics"],
+    queryFn: fetchMyComics,
+  });
+
+  const isLoading = loadingStories || loadingComics;
 
   const publishMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -56,8 +82,9 @@ export default function WorkspacePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-stories"] }),
   });
 
-  const drafts = stories?.filter((s) => !s.isPublished) || [];
-  const published = stories?.filter((s) => s.isPublished) || [];
+  const allItems: WorkItem[] = [...(stories || []), ...(comics || [])];
+  const drafts = allItems.filter((w) => !w.isPublished);
+  const published = allItems.filter((w) => w.isPublished);
 
   return (
     <div className="min-h-screen bg-[#15100A] text-amber-50 py-12 px-4">
@@ -87,7 +114,11 @@ export default function WorkspacePage() {
                   <span>{story.title}</span>
                   <div className="flex gap-2">
                     <Button size="icon" variant="outline" asChild>
-                      <Link href={`/publish?edit=${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                      {story.type === "story" ? (
+                          <Link href={`/publish?edit=${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                        ) : (
+                          <Link href={`/talecraft/comic/${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                        )}
                     </Button>
                     <Button size="icon" variant="outline" onClick={() => publishMutation.mutate(story.id)}>
                       <UploadCloud className="h-4 w-4" />
@@ -121,7 +152,11 @@ export default function WorkspacePage() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="icon" variant="outline" asChild>
-                      <Link href={`/story/${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                      {story.type === "story" ? (
+                          <Link href={`/story/${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                        ) : (
+                          <Link href={`/comic/${story.id}`}><Pencil className="h-4 w-4" /></Link>
+                        )}
                     </Button>
                     <Button size="icon" variant="outline" onClick={() => unpublishMutation.mutate(story.id)}>
                       <UploadCloud className="h-4 w-4 rotate-180" />

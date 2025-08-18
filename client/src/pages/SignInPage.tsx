@@ -18,7 +18,7 @@ export default function SignInPage() {
               <span className="text-amber-500">Heka</span>yaty
             </Link>
             <h1 className="text-2xl font-cinzel font-bold text-white mt-6">Welcome Back</h1>
-            <p className="text-gray-600 mt-2 font-cormorant text-lg italic">Sign in to continue your reading journey</p>
+            <p className="text-white mt-2 font-cormorant text-lg italic" data-component-name="SignInPage">Sign in to continue your reading journey</p>
           </div>
           
           <Card className="border-amber-500/50 shadow-lg">

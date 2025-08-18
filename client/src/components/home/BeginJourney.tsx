@@ -23,7 +23,7 @@ export default function BeginJourney() {
           )}
           
           <Button asChild variant="outline" className="bg-transparent border-2 border-amber-500 hover:bg-amber-500 text-brown-dark hover:text-amber-50 font-cinzel py-3 px-8 rounded-md transition-colors">
-            <Link href="/stories">Explore Stories</Link>
+            <Link href="/originals">Explore Stories</Link>
           </Button>
         </div>
       </div>

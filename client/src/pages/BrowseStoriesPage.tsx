@@ -144,7 +144,7 @@ export default function BrowseStoriesPage() {
         <meta name="description" content={pageDescription} />
       </Helmet>
       
-      <div className="bg-gradient-to-b from-amber-500/5 to-amber-50/5 pt-8 pb-16">
+      <div className="pt-8 pb-16" style={{ backgroundColor: '#151008' }}>
         <Container>
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div>

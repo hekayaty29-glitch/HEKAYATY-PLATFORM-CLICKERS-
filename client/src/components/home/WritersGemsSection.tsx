@@ -1,8 +1,18 @@
 import { Gem, Search } from "lucide-react";
+import bgImg from "@/assets/61e25244-e0d4-460d-907d-86223aad6ba0.png";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-const gemStories = [
+// Fetch gem stories
+const useGemStories = () =>
+  useQuery<any[]>({
+    queryKey: ["/api/stories/gems"],
+    staleTime: 1000 * 60 * 5,
+  });
+
+// removed mock array
+/* const gemStories = [
   {
     id: 401,
     title: "The Sapphire Enigma",
@@ -21,17 +31,53 @@ const gemStories = [
     author: "Scarlet Ember",
     cover: "❤️",
   },
-];
+*/
 
 export default function WritersGemsSection() {
   const [search, setSearch] = useState("");
-  const filtered = gemStories.filter((s) =>
+  const { data: gemStories, isLoading } = useGemStories();
+  const filtered = (gemStories || []).filter((s: any) =>
     s.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  if (isLoading) {
+    return (
+      <section
+        className="relative py-16 px-4 bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <div className="container mx-auto max-w-6xl grid gap-6 md:grid-cols-3">
+          {Array(3)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="animate-pulse bg-amber-50/10 rounded h-40" />
+            ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (!filtered.length) {
+    return (
+      <section
+        className="relative py-16 px-4 text-center bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <Link href="/gems" className="group">
+          <h3 className="font-cinzel text-2xl md:text-3xl text-amber-50 group-hover:text-amber-400 transition-colors">Browse Writer's Gems</h3>
+        </Link>
+        <p className="font-cormorant italic mt-2 text-amber-200">No gem stories available currently.</p>
+      </section>
+    );
+  }
+
   return (
-    <section className="py-16 px-4 bg-gradient-to-r from-midnight-blue to-brown-dark text-amber-50">
-      <div className="container mx-auto max-w-6xl">
+    <section
+      className="relative py-16 px-4 text-amber-50 bg-center bg-cover"
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
+      <div className="absolute inset-0 bg-brown-dark/40" />
+      <div className="relative container mx-auto max-w-6xl">
         <div className="flex items-center justify-center gap-3 mb-10">
           <Gem className="h-6 w-6 text-amber-400" />
           <Link href="/gems" className="hover:text-amber-400 transition-colors">

@@ -1,10 +1,11 @@
 import { BookOpenIcon, Search } from "lucide-react";
+import bgImg from "@/assets/63b76a44-095a-4fae-997f-ed1c910c07c1.png";
 import { useState } from "react";
 import { Link } from "wouter";
 
 // Temporary showcase data – in a real app this would come from an API
 const showcase = [
-  { id: 101, title: "Kingdom of Ashes", genre: "Fantasy", cover: "🗡️" },
+  { id: 1, title: "Kingdoms of Ashes", genre: "Fantasy", cover: "🗡️" },
   { id: 102, title: "Clockwork Hearts", genre: "Steampunk", cover: "🕰️" },
   { id: 103, title: "Nebula Dreams", genre: "Sci-Fi", cover: "🚀" },
   { id: 104, title: "Rosewood Secrets", genre: "Romance", cover: "🌹" },
@@ -19,8 +20,12 @@ export default function WhispersOfWordsSection() {
   );
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-r from-brown-dark to-midnight-blue text-amber-50">
-      <div className="container mx-auto max-w-6xl">
+    <section
+      className="relative py-16 px-4 text-amber-50 bg-center bg-cover"
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
+      <div className="absolute inset-0 bg-brown-dark/25" />
+      <div className="relative container mx-auto max-w-6xl">
         {/* Heading */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <BookOpenIcon className="h-6 w-6 text-amber-400" />
@@ -49,7 +54,7 @@ export default function WhispersOfWordsSection() {
           {filtered.map((novel) => (
             <Link
               key={novel.id}
-              href={`/novel/${novel.id}`}
+              href={`/listen/${novel.id}`}
               className="story-card bg-amber-50/10 p-6 rounded-lg border border-amber-500 hover:shadow-lg transition-all flex flex-col items-center"
             >
               <div className="text-6xl mb-4">{novel.cover}</div>

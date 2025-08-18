@@ -27,9 +27,11 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: process.env.VITE_API_BASE,
+        target: process.env.VITE_API_BASE?.startsWith("http")
+          ? process.env.VITE_API_BASE
+          : "http://127.0.0.1:5000",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
+        secure: false,
       },
     },
   },

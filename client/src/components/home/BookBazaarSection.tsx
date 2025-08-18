@@ -1,16 +1,44 @@
 import { ShoppingBag, Search } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-const showcase = [
-  { id: 501, title: "Shadow of the Phoenix", price: "$4.99", cover: "🔥" },
-  { id: 502, title: "Echoes in Amber", price: "$3.49", cover: "🧡" },
-  { id: 503, title: "Dreamweaver's Lullaby", price: "$5.99", cover: "💤" },
-];
+// Fetch bazaar books
+const useBazaarBooks = () =>
+  useQuery<any[]>({
+    queryKey: ["/api/bazaar/books"],
+    staleTime: 1000 * 60 * 5,
+  });
 
 export default function BookBazaarSection() {
   const [search, setSearch] = useState("");
-  const filtered = showcase.filter((b) => b.title.toLowerCase().includes(search.toLowerCase()));
+  const { data: showcase, isLoading } = useBazaarBooks();
+  const filtered = (showcase || []).filter((b) => b.title.toLowerCase().includes(search.toLowerCase()));
+
+  if (isLoading) {
+    return (
+      <section className="py-16 px-4 bg-gradient-to-r from-brown-dark to-midnight-blue text-amber-50" id="bazaar">
+        <div className="container mx-auto max-w-6xl grid gap-6 md:grid-cols-3">
+          {Array(3)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="animate-pulse bg-amber-50/10 rounded-lg h-40" />
+            ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (!filtered.length) {
+    return (
+      <section className="py-16 px-4 bg-gradient-to-r from-brown-dark to-midnight-blue text-center text-amber-50" id="bazaar">
+        <Link href="/bazaar" className="group">
+          <h3 className="font-cinzel text-2xl md:text-3xl group-hover:text-amber-300 transition-colors">Visit The Book Bazaar</h3>
+        </Link>
+        <p className="font-cormorant italic mt-2">No books available yet. Check back soon!</p>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 px-4 bg-gradient-to-r from-brown-dark to-midnight-blue text-amber-50">

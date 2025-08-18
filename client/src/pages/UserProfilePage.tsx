@@ -11,11 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import ProfileHeader from "@/components/user/ProfileHeader";
+import SubscriptionSection from "@/components/user/SubscriptionSection";
+import AchievementsSection from "@/components/user/AchievementsSection";
+import SettingsSection from "@/components/user/SettingsSection";
 import StoryCard from "@/components/story/StoryCard";
 import { StoryCard as StoryCardType, User, Novel, ProfileUpdateData, UserStats } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import { BookOpen, Bookmark, CreditCard, History, Camera, Pencil, X } from "lucide-react";
+import { BookOpen, Bookmark, CreditCard, History, Camera, Pencil, X, Cog, Trophy } from "lucide-react";
 
 interface UserWithStats extends User {
   followersCount: number;
@@ -33,25 +36,60 @@ export default function UserProfilePage() {
   const [profileData, setProfileData] = useState<ProfileUpdateData>({
     fullName: "",
     bio: "",
-    avatar: ""
+    avatar: "",
+    username: ""
   });
 
   // Fetch user profile with stats
-  const { data: profile, isLoading: profileLoading } = useQuery<UserWithStats>({
+  const { data: fetchedProfile, isLoading: profileLoading } = useQuery<UserWithStats>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/users/${userId}`);
+      return res.json();
+    },
   });
+
+  // --- DEV MOCK DATA FALLBACK ---
+  const mockProfile: UserWithStats = {
+    id: userId,
+    username: "demo_user",
+    email: "demo@example.com",
+    fullName: "Demo User",
+    bio: "I am a fictional user used for frontend testing.",
+    avatar: "https://i.pravatar.cc/150?u=demo",
+    isPremium: true,
+    isAuthor: true,
+    followersCount: 123,
+    followingCount: 45,
+    stats: {
+      storiesPublished: 4,
+      wordsWritten: 89000,
+      bookmarksReceived: 250,
+    },
+  } as any;
+
+  // When API fails or returns nothing (dev), use mock
+  const profile = fetchedProfile ?? (!profileLoading ? mockProfile : undefined);
 
   // Fetch user's authored stories
   const { data: authoredStories, isLoading: storiesLoading } = useQuery<StoryCardType[]>({
     queryKey: [`/api/stories?authorId=${userId}`],
     enabled: !!userId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/stories?authorId=${userId}`);
+      return res.json();
+    },
   });
   
   // Fetch user's novels
   const { data: userNovels, isLoading: novelsLoading } = useQuery<Novel[]>({
     queryKey: [`/api/novels?authorId=${userId}`],
     enabled: !!userId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/novels?authorId=${userId}`);
+      return res.json();
+    },
   });
   
   // Fetch user's purchased content
@@ -62,12 +100,20 @@ export default function UserProfilePage() {
     queryKey: ['/api/purchases'],
     enabled: !!userId && isOwnProfile,
     initialData: { stories: [], novels: [] },
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/purchases");
+      return res.json();
+    },
   });
   
   // Fetch user's bookmarked stories
   const { data: bookmarkedStories, isLoading: bookmarksLoading } = useQuery<StoryCardType[]>({
     queryKey: ['/api/bookmarks'],
     enabled: !!userId && isOwnProfile,
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/bookmarks");
+      return res.json();
+    },
   });
 
   // Handle profile photo upload
@@ -97,7 +143,7 @@ export default function UserProfilePage() {
   // Handle profile update
   const updateProfile = useMutation({
     mutationFn: async (data: ProfileUpdateData) => {
-      const res = await apiRequest("PATCH", `/api/users/${userId}`, data);
+      const res = await apiRequest("PUT", `/api/users/${userId}`, data);
       return res.json();
     },
     onSuccess: (data) => {
@@ -167,6 +213,17 @@ export default function UserProfilePage() {
     );
   }
   
+  const handleDeleteAccount = async () => {
+    try {
+      await apiRequest("DELETE", "/api/users/me");
+      toast.success("Account deleted");
+      // redirect to home
+      window.location.href = "/";
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to delete account");
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -236,6 +293,15 @@ export default function UserProfilePage() {
                   Bookmarks
                 </TabsTrigger>
               )}
+              {isOwnProfile && (
+                <TabsTrigger 
+                  value="achievements" 
+                  className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white flex items-center gap-2"
+                >
+                  <Trophy className="h-4 w-4" />
+                  Achievements
+                </TabsTrigger>
+              )}
               <TabsTrigger 
                 value="about" 
                 className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white flex items-center gap-2"
@@ -243,6 +309,24 @@ export default function UserProfilePage() {
                 <History className="h-4 w-4" />
                 About
               </TabsTrigger>
+            {isOwnProfile && (
+              <TabsTrigger 
+                value="subscription" 
+                className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white flex items-center gap-2"
+              >
+                <CreditCard className="h-4 w-4" />
+                Subscription
+              </TabsTrigger>
+            )}
+            {isOwnProfile && (
+              <TabsTrigger 
+                value="settings" 
+                className="font-cinzel data-[state=active]:bg-amber-500 data-[state=active]:text-white flex items-center gap-2"
+              >
+                <Cog className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            )}
             </TabsList>
             
             <TabsContent value="stories" className="mt-6">
@@ -486,6 +570,13 @@ export default function UserProfilePage() {
               </TabsContent>
             )}
             
+            {/* Achievements Tab */}
+            {isOwnProfile && (
+              <TabsContent value="achievements" className="mt-6">
+                <AchievementsSection />
+              </TabsContent>
+            )}
+
             {/* Novels Tab */}
             <TabsContent value="novels" className="mt-6">
               {novelsLoading ? (
@@ -717,6 +808,17 @@ export default function UserProfilePage() {
                 )}
               </div>
             </TabsContent>
+          {isOwnProfile && (
+              <TabsContent value="subscription" className="mt-6">
+                <SubscriptionSection user={profile} />
+              </TabsContent>
+            )}
+
+            {isOwnProfile && (
+              <TabsContent value="settings" className="mt-6">
+                <SettingsSection user={profile} onDeleteAccount={handleDeleteAccount} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
@@ -735,6 +837,19 @@ export default function UserProfilePage() {
             </button>
           </DialogHeader>
           <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {/* Username (only if not set) */}
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                value={profileData.username || ""}
+                onChange={handleInputChange}
+                placeholder="Choose a username"
+                className="w-full"
+                disabled={Boolean(profile?.username && profile?.username !== "null")}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input

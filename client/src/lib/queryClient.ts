@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { supabase } from "./supabase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,20 +8,29 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+// Default to local backend if env not set
+const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || "http://localhost:5000";
 
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const finalUrl = url.startsWith("http")
-    ? url
-    : `${API_BASE}${url.replace(/^\/api/, "")}`;
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Session debug:', { session: !!session, token: session?.access_token ? 'present' : 'missing' });
+  const hdrs: Record<string,string> = data ? { "Content-Type": "application/json" } : {};
+  if (session?.access_token) {
+    hdrs["Authorization"] = `Bearer ${session.access_token}`;
+    console.log('Added Authorization header');
+  } else {
+    console.log('No access token found');
+  }
+
+  const finalUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
 
   const res = await fetch(finalUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: hdrs,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -36,9 +46,16 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const raw = queryKey[0] as string;
-    const finalUrl = raw.startsWith("http") ? raw : `${import.meta.env.VITE_API_BASE ?? ""}${raw.replace(/^\/api/, "")}`;
+    const finalUrl = raw.startsWith("http") ? raw : `${API_BASE}${raw}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    const hdrs: Record<string,string> = {};
+    if (session?.access_token) {
+      hdrs["Authorization"] = `Bearer ${session.access_token}`;
+    }
+    
     const res = await fetch(finalUrl, {
       credentials: "include",
+      headers: hdrs,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

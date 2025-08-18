@@ -3,6 +3,9 @@ import animatePlugin from "tailwindcss-animate";
 import typographyPlugin from "@tailwindcss/typography";
 
 export default {
+  safelist: [
+    'border-border'
+  ],
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {

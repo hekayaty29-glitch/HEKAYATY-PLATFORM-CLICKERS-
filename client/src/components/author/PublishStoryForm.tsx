@@ -40,6 +40,7 @@ const storyFormSchema = z.object({
   isShortStory: z.boolean().default(false),
   isPublished: z.boolean().default(false),
   genreIds: z.array(z.number()).min(1, "At least one genre is required"),
+  workshopId: z.string().uuid().optional(),
 });
 
 type StoryFormValues = z.infer<typeof storyFormSchema>;
@@ -72,6 +73,7 @@ export function PublishStoryForm({ isPremium }: PublishStoryFormProps) {
       isPremium: false,
       isShortStory: false,
       isPublished: false,
+      workshopId: undefined,
       genreIds: [],
     },
   });
@@ -91,6 +93,16 @@ export function PublishStoryForm({ isPremium }: PublishStoryFormProps) {
   const isShortStory = form.watch("isShortStory");
   
   // Submit story mutation
+  // Fetch workshops for dropdown
+  const { data: workshops } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/community/workshops", { mine: 1 }],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/community/workshops?mine=1");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const publishMutation = useMutation({
     mutationFn: async (data: StoryFormValues) => {
       const res = await apiRequest("POST", "/api/stories", data);

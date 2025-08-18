@@ -12,7 +12,7 @@ export default function TermsOfUsePage() {
         />
       </Helmet>
 
-      <div className="min-h-[calc(100vh-200px)] bg-gradient-to-b from-brown-dark to-brown-900 py-12 px-4 text-amber-50">
+      <div className="min-h-[calc(100vh-200px)] py-12 px-4 text-amber-50" style={{ backgroundColor: '#151008' }}>
         <div className="container mx-auto max-w-3xl space-y-8">
           <h1 className="font-cinzel text-3xl font-bold text-center mb-6 text-amber-400">
             🛡️ أولًا: شروط الاستخدام (Terms of Use)

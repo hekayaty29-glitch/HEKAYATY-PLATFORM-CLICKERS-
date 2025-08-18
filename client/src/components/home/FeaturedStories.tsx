@@ -36,7 +36,7 @@ export default function FeaturedStories() {
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Featured Stories</h2>
-            <Link href="/stories" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
+            <Link href="/originals" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
               View All <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>

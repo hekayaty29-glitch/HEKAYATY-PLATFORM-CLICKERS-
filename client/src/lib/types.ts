@@ -140,6 +140,7 @@ export interface ProfileUpdateData {
   bio: string;
   avatar?: string;
   isAuthor?: boolean;
+  username?: string;
 }
 
 export interface RatingFormData {

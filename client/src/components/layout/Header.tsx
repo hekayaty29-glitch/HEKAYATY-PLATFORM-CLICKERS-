@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,19 +20,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFlag } from "@/lib/flags";
-import { Menu, BookOpen, PenSquare, Award, Users, ChevronDown, ShoppingBag, Megaphone, Shield } from "lucide-react";
+import { useLang } from "@/context/LanguageContext";
+import { useRoles } from "@/hooks/useRoles";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAdmin } from '@/context/AdminContext';
+import { toast } from "sonner";
+import { Menu, BookOpen, PenSquare, Award, Users, ChevronDown, Megaphone, Shield, Bell, Globe, Star, Hammer, Home } from "lucide-react";
 
 export default function Header() {
   const [location] = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const { isAdmin } = useAdmin();
+  const { isVip } = useRoles();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
+  const { toggle: toggleLang } = useLang();
+
+  const handleLanguageSwitch = () => {
+    toggleLang();
+  };
+
   const showRecs = useFlag("recommendations");
 
+  // Notifications
+  const { notifications } = useNotifications(user ? String(user.id) : undefined);
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const prevCount = useRef(unreadCount);
+  useEffect(() => {
+    if (unreadCount > prevCount.current) {
+      toast("New notifications", {
+        description: `You have ${unreadCount} unread notifications`,
+      });
+    }
+    prevCount.current = unreadCount;
+  }, [unreadCount]);
+
   return (
-    <header className="bg-gradient-to-r from-brown-dark to-midnight-blue text-amber-50 shadow-lg">
+    <header className="text-amber-50 shadow-lg" style={{ backgroundColor: '#151008' }}>
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/" className="text-2xl md:text-3xl font-cinzel font-bold">
@@ -42,9 +68,18 @@ export default function Header() {
         
         {/* Navigation for desktop */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/stories" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
+          <Link href="/home" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
+            <Home className="h-4 w-4" />
+            <span>Home</span>
+          </Link>
+          <Link href="/originals" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
             <BookOpen className="h-4 w-4" />
             <span>Discover</span>
+          </Link>
+
+          <Link href="/subscribe" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
+            <Star className="h-4 w-4" />
+            <span>Get Code</span>
           </Link>
           
           <DropdownMenu>
@@ -86,9 +121,9 @@ export default function Header() {
             <span>Rankings</span>
           </Link>
           
-          <Link href="/bazaar" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
-            <ShoppingBag className="h-4 w-4" />
-            <span>Bazaar</span>
+          <Link href="/talecraft" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
+            <Hammer className="h-4 w-4" />
+            <span>TaleCraft</span>
           </Link>
           
           <Link href="/news" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
@@ -103,7 +138,7 @@ export default function Header() {
              </Link>
            )}
            {isAuthenticated && (
-             <Link href="/publish" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
+             <Link href="/talecraft" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
               <PenSquare className="h-4 w-4" />
               <span>Write</span>
             </Link>
@@ -123,6 +158,25 @@ export default function Header() {
         </nav>
         
         <div className="flex items-center space-x-4">
+          {/* utility icons */}
+          {isAuthenticated && !isVip && (
+            <Link href="/subscribe" className="hidden md:inline-flex text-amber-50 hover:text-amber-500">
+              <Star className="h-5 w-5" />
+            </Link>
+          )}
+          <Button variant="ghost" aria-label="switch-language" className="hidden md:inline-flex p-0 h-8 w-8 text-amber-50 hover:text-amber-500" onClick={handleLanguageSwitch}>
+            <Globe className="h-5 w-5" />
+          </Button>
+          {isAuthenticated && (
+             <Link href="/notifications" className="relative hidden md:inline-flex text-amber-50 hover:text-amber-500">
+               <Bell className="h-5 w-5" />
+               {unreadCount > 0 && (
+                 <span className="absolute -top-1 -right-1 bg-red-600 text-[10px] px-1 rounded-full">
+                   {unreadCount}
+                 </span>
+               )}
+             </Link>
+           )}
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -196,22 +250,26 @@ export default function Header() {
                 </SheetDescription>
               </SheetHeader>
               <div className="py-6 space-y-4">
+                <Link href="/home" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
+                  <Home className="mr-2 h-5 w-5" />
+                  <span>Home</span>
+                </Link>
                 {isAuthenticated && user && (
                   <div className="flex items-center space-x-3 mb-6">
                     <Avatar>
-                      <AvatarImage src={user.avatar} alt={user.fullName} />
+                      <AvatarImage src={user.avatar} alt={user.fullName || 'User'} />
                       <AvatarFallback className="bg-amber-500 text-brown-dark">
-                        {user.fullName.charAt(0)}
+                        {user.fullName?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">{user.fullName}</p>
+                      <p className="font-medium">{user.fullName || 'User'}</p>
                       <p className="text-sm text-amber-300">@{user.username}</p>
                     </div>
                   </div>
                 )}
                 
-                <Link href="/stories" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
+                <Link href="/originals" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
                   <BookOpen className="mr-2 h-5 w-5" />
                   <span>Discover</span>
                 </Link>
@@ -220,15 +278,19 @@ export default function Header() {
                   <Award className="mr-2 h-5 w-5" />
                   <span>Genres</span>
                 </Link>
+                <Link href="/subscribe" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
+                  <Star className="mr-2 h-5 w-5" />
+                  <span>Get Code</span>
+                </Link>
                 
                 <Link href="/top-rated" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
                   <Award className="mr-2 h-5 w-5" />
                   <span>Rankings</span>
                 </Link>
                 
-                <Link href="/bazaar" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
-                  <ShoppingBag className="mr-2 h-5 w-5" />
-                  <span>Bazaar</span>
+                <Link href="/talecraft" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
+                  <Hammer className="mr-2 h-5 w-5" />
+                  <span>TaleCraft</span>
                 </Link>
                 
                 <Link href="/news" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
@@ -237,7 +299,7 @@ export default function Header() {
                 </Link>
                 
                 {isAuthenticated && (
-                  <Link href="/publish" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
+                  <Link href="/talecraft" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
                     <PenSquare className="mr-2 h-5 w-5" />
                     <span>Write</span>
                   </Link>

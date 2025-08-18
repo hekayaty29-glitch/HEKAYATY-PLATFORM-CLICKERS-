@@ -97,7 +97,7 @@ export default function GenreStoriesPage() {
         />
       </Helmet>
       
-      <div className="bg-gradient-to-b from-amber-500/5 to-amber-50/5 pt-8 pb-16">
+      <div className="pt-8 pb-16 text-amber-50" style={{ backgroundColor: '#151008' }}>
         <Container>
           {/* Header */}
           <div className="text-center mb-8">

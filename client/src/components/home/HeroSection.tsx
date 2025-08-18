@@ -18,7 +18,7 @@ export default function HeroSection() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/stories?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
     }
   };
   
@@ -54,9 +54,9 @@ export default function HeroSection() {
             
             <Button 
               asChild
-              className="bg-amber-500 hover:bg-amber-600 text-brown-dark font-cinzel py-6 px-8 rounded-full"
+              className="bg-amber-500 hover:bg-amber-600 text-white font-cinzel py-6 px-8 rounded-full"
             >
-              <Link href="/stories" className="text-white">Start Reading</Link>
+              <Link href="/originals">Start Reading</Link>
             </Button>
           </div>
           

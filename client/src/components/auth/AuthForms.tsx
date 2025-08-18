@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -24,7 +24,7 @@ const loginSchema = z.object({
 });
 
 export function LoginForm() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +44,7 @@ export function LoginForm() {
     
     try {
       await login(data.username, data.password);
-      navigate("/");
+      navigate("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
@@ -62,6 +62,17 @@ export function LoginForm() {
           </div>
         )}
         
+        {/* Google login */}
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2" onClick={() => loginWithGoogle()}>
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
+          Continue with Google
+        </Button>
+        {/* Divider */}
+        <div className="flex items-center my-2">
+          <span className="flex-grow border-t border-amber-300" />
+          <span className="px-2 text-sm text-amber-600">or</span>
+          <span className="flex-grow border-t border-amber-300" />
+        </div>
         <FormField
           control={form.control}
           name="username"
@@ -116,9 +127,7 @@ export function LoginForm() {
             </label>
           </div>
           
-          <Button variant="link" className="p-0 h-auto text-amber-500 hover:text-amber-700">
-            Forgot password?
-          </Button>
+          <Link href="/forgot-password" className="text-amber-500 hover:text-amber-700 text-sm">Forgot password?</Link>
         </div>
         
         <Button 
@@ -160,7 +169,7 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ isPremium = false }: RegisterFormProps) {
-  const { register } = useAuth();
+  const { register, login, loginWithGoogle } = useAuth();
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -185,6 +194,7 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
     setError("");
     
     try {
+      // Register user
       await register({
         username: data.username,
         email: data.email,
@@ -192,12 +202,21 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
         password: data.password,
         confirmPassword: data.confirmPassword,
       });
-      
+
+      // Supabase signUp already creates a session when email confirmation is disabled.
+      // Only attempt sign-in if no session was returned (edge case)
+      try {
+        await login(data.username, data.password);
+      } catch {}
+
       // If registration specified premium, handle upgrade
       if (data.isPremium) {
         navigate("/upgrade");
       } else {
-        navigate("/");
+        // Small delay to ensure auth state is established
+        setTimeout(() => {
+          navigate("/setup-username");
+        }, 100);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -216,6 +235,17 @@ export function RegisterForm({ isPremium = false }: RegisterFormProps) {
           </div>
         )}
         
+        {/* Google sign up */}
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2" onClick={() => loginWithGoogle()}>
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5" />
+          Continue with Google
+        </Button>
+        {/* Divider */}
+        <div className="flex items-center my-2">
+          <span className="flex-grow border-t border-amber-300" />
+          <span className="px-2 text-sm text-amber-600">or</span>
+          <span className="flex-grow border-t border-amber-300" />
+        </div>
         <FormField
           control={form.control}
           name="fullName"

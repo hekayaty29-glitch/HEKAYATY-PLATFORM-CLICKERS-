@@ -1,43 +1,22 @@
 import { Helmet } from "react-helmet";
 import { Megaphone } from "lucide-react";
 import { useState } from "react";
+import { useNews } from "@/hooks/useNews";
 import { Search } from "lucide-react";
 
 interface NewsItem {
-  id: number;
-  type: "announcement" | "competition" | "story";
+  id: string;
+  type: "main" | "community";
   title: string;
-  summary: string;
-  date: string;
+  content: string;
+  created_at: string;
 }
 
-const mockNews: NewsItem[] = [
-  {
-    id: 1,
-    type: "announcement",
-    title: "New Feature: Book Bazaar Launched!",
-    summary: "Buy exclusive stories directly from your favourite authors.",
-    date: "2025-06-05",
-  },
-  {
-    id: 2,
-    type: "competition",
-    title: "Writer's Gems May Results",
-    summary: "Congratulations to Aria Shadows for winning first place!",
-    date: "2025-06-01",
-  },
-  {
-    id: 3,
-    type: "story",
-    title: "A Song of Starlight released",
-    summary: "Dive into the epic fantasy by Nova Celeste today.",
-    date: "2025-05-28",
-  },
-];
 
 export default function HekayatyNewsPage() {
   const [search, setSearch] = useState("");
-  const filtered = mockNews.filter((n) => n.title.toLowerCase().includes(search.toLowerCase()));
+  const { data: news = [], isLoading, error } = useNews("main");
+  const filtered = news.filter((n) => n.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-[#15100A] text-amber-50 py-20 px-4">
@@ -65,11 +44,13 @@ export default function HekayatyNewsPage() {
         </div>
 
         <div className="space-y-8">
+          {isLoading && <p className="text-center">Loading…</p>}
+          {error && <p className="text-center text-red-500">{(error as Error).message}</p>}
           {filtered.map((item) => (
             <div key={item.id} className="bg-amber-50/10 p-6 rounded-lg border border-amber-500 hover:shadow-lg transition-all">
-              <p className="text-sm text-amber-300 mb-2">{new Date(item.date).toLocaleDateString()}</p>
+              <p className="text-sm text-amber-300 mb-2">{new Date(item.created_at).toLocaleDateString()}</p>
               <h2 className="font-cinzel text-2xl mb-2 text-amber-100">{item.title}</h2>
-              <p className="text-amber-200 mb-2">{item.summary}</p>
+              <p className="text-amber-200 mb-2">{item.content}</p>
               <span className="inline-block bg-amber-500 text-brown-dark text-xs font-semibold px-3 py-1 rounded-full capitalize">
                 {item.type}
               </span>

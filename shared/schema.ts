@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatarUrl").default(""),
   isPremium: boolean("isPremium").default(false),
   isAuthor: boolean("isAuthor").default(false),
+  isAdmin: boolean("isAdmin").default(false),
 });
 
 export const stories = pgTable("stories", {
@@ -57,7 +58,7 @@ export const bookmarks = pgTable("bookmarks", {
 });
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, isAdmin: true });
 export const insertStorySchema = createInsertSchema(stories).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertGenreSchema = createInsertSchema(genres).omit({ id: true });
 export const insertStoryGenreSchema = createInsertSchema(storyGenres);
@@ -98,3 +99,39 @@ export const publishStorySchema = insertStorySchema.extend({
   genreIds: z.array(z.number()).min(1, "At least one genre is required"),
   content: z.string().min(100, "Story content must be at least 100 characters"),
 });
+
+// TalesCraft publishing schema
+// TalesCraft publishing schema with page selection
+export const PUBLISH_PAGES = [
+  "adventure",
+  "romance",
+  "scifi",
+  "writers_gems",
+  "hekayaty_original",
+  "epic_comics"
+] as const;
+
+export const taleCraftPublishSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  authorName: z.string().min(1, "Author name is required"),
+  content: z.string().min(100, "Content must be at least 100 characters"),
+  coverImage: z.string().optional(),
+  genre: z.enum(["adventure", "romance", "scifi", "writers_gems", "hekayaty_original"]),
+  projectType: z.enum(["story", "comic"]),
+  page: z.enum(PUBLISH_PAGES),
+  format: z.enum(["html", "pdf"]),
+  isPremium: z.boolean().default(false),
+});
+
+// Genre mapping for publishing
+export const GENRE_PAGES = {
+  adventure: "Adventure",
+  romance: "Romance", 
+  scifi: "Sci-Fi",
+  writers_gems: "Writer's Gems",
+  hekayaty_original: "Hekayaty Original", // Admin only
+  comic: "Epic Comics" // Comics only
+} as const;
+
+export type TaleCraftPublish = z.infer<typeof taleCraftPublishSchema>;

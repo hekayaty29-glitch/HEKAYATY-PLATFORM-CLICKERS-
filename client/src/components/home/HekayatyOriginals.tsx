@@ -1,4 +1,8 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import bgImg from "@/assets/571601e5-d155-4362-b446-db1c4302f71c.png";
 import { Star, Search } from "lucide-react";
 import { useState } from "react";
 
@@ -16,7 +20,15 @@ interface Props {
   showSearch?: boolean;
 }
 
-const defaultStories: OriginalStory[] = [
+// Fetch originals
+const useOriginalStories = () =>
+  useQuery<OriginalStory[]>({
+    queryKey: ["/api/stories/originals"],
+    queryFn: async () => (await apiRequest("GET", "/api/stories/originals")).json(),
+    staleTime: 1000 * 60 * 5,
+  });
+
+/* const defaultStories: OriginalStory[] = [
   {
     id: 1,
     title: "Chronicles of the Amber Throne",
@@ -44,10 +56,14 @@ const defaultStories: OriginalStory[] = [
     cover: "🔥",
     genre: "Fantasy",
   },
-];
+*/
 
 export default function HekayatyOriginals({ stories, showSearch = false }: Props) {
-  const originals = stories ?? defaultStories;
+  const { data: fetched, isLoading } = useOriginalStories();
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
+
+  const originals = stories ?? fetched ?? [];
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
@@ -60,9 +76,62 @@ export default function HekayatyOriginals({ stories, showSearch = false }: Props
     return matchGenre && matchTitle;
   });
 
+  if (isLoading) {
+    return (
+      <section
+        className="relative py-16 px-4 bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <div className="container mx-auto max-w-6xl grid gap-6 md:grid-cols-3">
+          {Array(3)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="animate-pulse bg-amber-50/10 rounded h-40" />
+            ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (!originals.length) {
+    return (
+      <section
+        className="relative py-16 px-4 text-center bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <Link href="/originals" className="group">
+          <h3 className="font-cinzel text-2xl md:text-3xl text-amber-50 group-hover:text-amber-400 transition-colors">
+            View All Originals
+          </h3>
+        </Link>
+        <p className="font-cormorant italic mt-2 text-amber-200">No originals available yet. Check back soon!</p>
+      </section>
+    );
+  }
+
   return (
-    <section className="py-16 px-4 bg-gradient-to-r from-brown-dark to-midnight-blue text-amber-50">
-      <div className="container mx-auto max-w-6xl">
+    <section
+      className="relative py-16 px-4 text-amber-50 bg-center bg-cover"
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
+      <div className="absolute inset-0 bg-brown-dark/40" />
+      <div className="relative container mx-auto max-w-6xl">
+        {isAdmin && (
+          <div className="flex justify-end mb-8 gap-4">
+            <Link
+              href="/publish"
+              className="bg-amber-500 hover:bg-amber-600 text-amber-50 font-cinzel text-sm py-2 px-6 rounded-full transition-colors"
+            >
+              Publish Story
+            </Link>
+            <Link
+              href="/publish-comic"
+              className="bg-amber-500 hover:bg-amber-600 text-amber-50 font-cinzel text-sm py-2 px-6 rounded-full transition-colors"
+            >
+              Publish Comic
+            </Link>
+          </div>
+        )}
         <div className="flex items-center justify-center mb-8 gap-3">
           <Star className="h-6 w-6 text-amber-500" />
           <Link href="/originals" className="hover:text-amber-400 transition-colors">
@@ -118,7 +187,7 @@ export default function HekayatyOriginals({ stories, showSearch = false }: Props
               </p>
               <div className="flex justify-center">
                 <Link
-                  href={`/stories/${story.id}`}
+                  href={`/originals/${story.id}`}
                   className="bg-amber-500 hover:bg-amber-600 text-amber-50 font-cinzel text-sm py-2 px-6 rounded-full transition-colors"
                 >
                   Read Story

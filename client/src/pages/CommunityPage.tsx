@@ -36,62 +36,175 @@ import {
   Pin,
   ThumbsUp,
   MessageSquare,
-  Bookmark
+  Bookmark,
+  Plus,
+  Trash2
 } from 'lucide-react';
+import heroBg from '@/assets/c79d8e3c-1594-4711-97bf-606619c10341.png';
+
+import { useCommunityPosts, useCreatePost, useLikePost, usePostComments, useAddComment, useLikeComment, useDeletePost, useDeleteComment } from '@/hooks/useCommunityPosts';
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ReportDialog from '@/components/common/ReportDialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { useClubs, useJoinClub, useAddClub } from '@/hooks/useClubs';
+import { useWorkshops, useJoinWorkshop, useAddWorkshop } from '@/hooks/useWorkshops';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
+
+// Comments component for individual discussions
+const DiscussionComments: React.FC<{ discussionId: string }> = ({ discussionId }) => {
+  const { data: comments = [], isLoading } = usePostComments(discussionId);
+  const addCommentMutation = useAddComment();
+  const likeCommentMutation = useLikeComment();
+  const { user } = useAuth();
+  const currentUser = user?.username || 'You';
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const input = form.elements.namedItem('comment') as HTMLInputElement;
+    if (input.value.trim()) {
+      addCommentMutation.mutate({ postId: discussionId, content: input.value.trim() });
+      input.value = '';
+    }
+  };
+
+  const handleLikeComment = (commentId: string) => {
+    likeCommentMutation.mutate({ commentId, postId: discussionId });
+  };
+
+  if (isLoading) {
+    return <div className="mt-4 text-gray-400">Loading comments...</div>;
+  }
+
+  return (
+    <div className="mt-4 space-y-4">
+      {comments.length === 0 && <p className="italic text-gray-400">No comments yet.</p>}
+      {comments.map((comment: any) => (
+        <div key={comment.id} className="bg-white/5 p-3 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-amber-400 font-semibold">User</span>
+            <div className="flex items-center gap-2">
+              <ReportDialog 
+                contentId={comment.id} 
+                contentType="comment" 
+                triggerClassName="border-red-500 text-red-500 hover:bg-red-600 hover:text-white px-1 py-0.5 text-[10px]" 
+              />
+              <button 
+                onClick={() => handleLikeComment(comment.id)} 
+                className={`flex items-center gap-1 text-sm transition-colors ${
+                  comment.user_has_liked ? 'text-red-400' : 'text-blue-200 hover:text-blue-300'
+                }`}
+              >
+                <ThumbsUp className="w-3 h-3" /> 
+                {comment.like_count || 0}
+              </button>
+            </div>
+          </div>
+          <div className="text-gray-300">{comment.content}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            {new Date(comment.created_at).toLocaleString()}
+          </div>
+        </div>
+      ))}
+      <form onSubmit={handleAddComment} className="flex gap-2">
+        <Input 
+          name="comment" 
+          placeholder="Add a comment..." 
+          className="flex-1" 
+          disabled={addCommentMutation.isPending}
+        />
+        <Button 
+          type="submit" 
+          className="bg-blue-600 hover:bg-blue-700" 
+          disabled={addCommentMutation.isPending}
+        >
+          {addCommentMutation.isPending ? 'Posting...' : 'Post'}
+        </Button>
+      </form>
+    </div>
+  );
+};
 
 const CommunityPage: React.FC = () => {
+  const { data: clubs = [] } = useClubs();
+  const joinClub = useJoinClub();
+  const addClub = useAddClub();
+  const { data: workshops = [] } = useWorkshops();
+  const joinWorkshop = useJoinWorkshop();
+  const addWorkshop = useAddWorkshop();
+  const [, setLocation] = useLocation();
+  const [clubModalOpen, setClubModalOpen] = useState(false);
+  const [workshopModalOpen, setWorkshopModalOpen] = useState(false);
+  const [newWorkshop, setNewWorkshop] = useState({ name: '', description: '' });
+  const [newClub, setNewClub] = useState({ name: '', description: '' });
   // Mock data and state management
   const [activeTab, setActiveTab] = useState('discussions');
-  const [discussions, setDiscussions] = useState([
-    {
-      id: 1,
-      title: 'The Art of Magical Storytelling',
-      author: 'WizardScribe',
-      avatar: '🧙‍♂️',
-      content:
-        "What techniques do you use to weave magic into your narratives? I've been experimenting with dream sequences...",
-      timestamp: '2 hours ago',
-      likes: 42,
-      replies: 18,
-      views: 156,
-      tags: ['storytelling', 'magic', 'writing'],
-      category: 'Writing',
-      isPinned: true,
-      trending: true,
-    },
-    {
-      id: 2,
-      title: 'Monthly Writing Challenge: Enchanted Forests',
-      author: 'ForestKeeper',
-      avatar: '🌲',
-      content:
-        "This month's challenge: Write a 500-word story set in an enchanted forest. Let your imagination run wild!",
-      timestamp: '4 hours ago',
-      likes: 67,
-      replies: 23,
-      views: 203,
-      tags: ['challenge', 'forest', 'creative'],
-      category: 'Challenges',
-      isPinned: false,
-      trending: true,
-    },
-    {
-      id: 3,
-      title: 'Character Development Workshop',
-      author: 'MysticMind',
-      avatar: '🔮',
-      content:
-        'Join us for an interactive session on creating memorable characters that readers will love and remember.',
-      timestamp: '1 day ago',
-      likes: 34,
-      replies: 12,
-      views: 89,
-      tags: ['workshop', 'characters', 'development'],
-      category: 'Workshops',
-      isPinned: false,
-      trending: false,
-    },
+  const { user } = useAuth();
+  const currentUserId: string = user?.id ? String(user.id) : '';
+  const currentUser: string = user?.username ?? 'You';
+  const isAdmin = currentUser === 'Admin';
+
+  interface DiscussionComment { id: string; user: string; text: string; likes: number; }
+  interface DiscussionItem {
+    id: string;
+    title: string;
+    author: string;
+    avatar: string;
+    content: string;
+    timestamp: string;
+    likes: number;
+    replies: number;
+    views: number;
+    tags: string[];
+    category: string;
+    isPinned: boolean;
+    trending: boolean;
+    comments: DiscussionComment[];
+    user_has_liked?: boolean;
+  }
+
+  const { data: posts = [], isLoading: postsLoading } = useCommunityPosts();
+  const deletePost = useDeletePost();
+  const deleteCommentMutation = useDeleteComment();
+  const createPost = useCreatePost();
+  const likePost = useLikePost();
+  const addComment = useAddComment();
+  const likeComment = useLikeComment();
+  
+  // Transform backend posts to match frontend interface
+  const discussions = posts.map((post: any) => ({
+    id: post.id,
+    title: post.title || '',
+    author: 'User', // TODO: fetch user data
+    avatar: '👤',
+    content: post.body || '',
+    timestamp: new Date(post.created_at).toLocaleString() || 'Unknown',
+    likes: post.like_count || 0,
+    replies: post.comment_count ?? 0,
+    views: 0,
+    tags: post.tags || [],
+    category: 'General',
+    isPinned: false,
+    trending: post.like_count > 5,
+    comments: [],
+    user_has_liked: post.user_has_liked || false,
+  }));
+
+  interface NewsItem { id:number; title:string; category:string; content:string; timestamp:string; }
+  const [news,setNews] = useState<NewsItem[]>([
+    {id:1,title:'Monthly Writing Contest Results Are In!',category:'Contest Winner Announcement',content:'Congratulations to all participants! The winning entries showcased incredible creativity and storytelling prowess.',timestamp:'2 hours ago'},
+    {id:2,title:'New Features Released!',category:'Platform Update',content:"We've added real-time collaboration tools, enhanced search functionality, and improved mobile experience.",timestamp:'1 day ago'}
   ]);
+
+  const addNews=(title:string,content:string)=>{
+    const item:NewsItem={id:news.length+1,title,category:'Announcement',content,timestamp:'Just now'};
+    setNews([item,...news]);
+  };
 
   const [forums] = useState([
     { id: 1, name: 'Fantasy Writing', members: 1247, description: 'Epic tales and magical worlds', color: 'purple', posts: 3421 },
@@ -99,18 +212,51 @@ const CommunityPage: React.FC = () => {
     { id: 3, name: 'Sci-Fi Chronicles', members: 1034, description: 'Future worlds and beyond', color: 'blue', posts: 2743 },
   ]);
 
-  const [clubs] = useState([
-    { id: 1, name: 'Midnight Writers', members: 245, level: 'Elite', activity: 'Very Active' },
-    { id: 2, name: 'Dragon Tales Guild', members: 189, level: 'Advanced', activity: 'Active' },
-    { id: 3, name: 'Mystic Poets Society', members: 156, level: 'Intermediate', activity: 'Moderate' },
-  ]);
+  // legacy club data removed
 
-  const [gallery] = useState([
+  interface ArtItem { id:number; title:string; artist:string; likes:number; image:string | null; imageUrl?:string }
+  const [gallery,setGallery] = useState<ArtItem[]>([
     { id: 1, title: 'Enchanted Castle', artist: 'ArtMage', likes: 156, image: '🏰' },
     { id: 2, title: "Dragon's Lair", artist: 'FirePainter', likes: 243, image: '🐉' },
     { id: 3, title: 'Mystic Forest', artist: 'NatureWitch', likes: 187, image: '🌲' },
     { id: 4, title: 'Starlit Path', artist: 'CelestialArt', likes: 298, image: '✨' },
   ]);
+
+  const likeArt = (id: number) =>
+    setGallery((prev) => prev.map((a) => (a.id === id ? { ...a, likes: a.likes + 1 } : a)));
+
+  const uploadInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleUploadArt = async (file: File) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'community-art');
+
+      const resp = await fetch('/api/upload/file', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (!resp.ok) throw new Error('Upload failed');
+      const json = await resp.json();
+      
+      const newArt: ArtItem = {
+        id: gallery.length + 1,
+        title: file.name,
+        artist: 'You',
+        likes: 0,
+        image: null,
+        imageUrl: json.url,
+      };
+      setGallery([newArt, ...gallery]);
+    } catch (error) {
+      console.error('Art upload failed:', error);
+      alert('Failed to upload art. Please try again.');
+    }
+  };
 
   const [newDiscussion, setNewDiscussion] = useState({ title: '', content: '', tags: '', category: 'General' });
   const [searchTerm, setSearchTerm] = useState('');
@@ -119,32 +265,46 @@ const CommunityPage: React.FC = () => {
 
   const categories = ['General', 'Writing', 'Art', 'Workshops', 'Challenges', 'Feedback', 'Announcements'];
 
-  const handleCreateDiscussion = () => {
-    if (newDiscussion.title && newDiscussion.content) {
-      const discussion = {
-        id: discussions.length + 1,
-        title: newDiscussion.title,
-        author: 'You',
-        avatar: '👤',
-        content: newDiscussion.content,
-        timestamp: 'Just now',
-        likes: 0,
-        replies: 0,
-        views: 1,
-        tags: newDiscussion.tags.split(',').map((tag) => tag.trim()),
-        category: newDiscussion.category,
-        isPinned: false,
-        trending: false,
-      };
-      setDiscussions([discussion, ...discussions]);
-      setNewDiscussion({ title: '', content: '', tags: '', category: 'General' });
-    }
+  const [expandedDiscussion, setExpandedDiscussion] = useState<string|null>(null);
+
+  const likeDiscussion = (id: string) => {
+    likePost.mutate(id);
   };
 
-  const filteredDiscussions = discussions.filter((discussion) => {
-    const matchesSearch =
-      discussion.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      discussion.content.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleAddComment = (discussionId: string, text: string) => {
+    if (!text.trim()) return;
+    addComment.mutate({ postId: discussionId, content: text.trim() });
+  };
+
+  const handleLikeComment = (discussionId: string, commentId: string) => {
+    likeComment.mutate({ commentId, postId: discussionId });
+  };
+
+  const deleteDiscussion = (id: string) => {
+    deletePost.mutate(id);
+  };
+
+  const deleteComment = (discussionId: string, commentId: string) => {
+    deleteCommentMutation.mutate({ commentId, postId: discussionId });
+  };
+
+  const deleteArt = (id: number) =>
+    setGallery((prev) => prev.filter((a) => a.id !== id));
+
+  const handleCreateDiscussion = () => {
+    if (!newDiscussion.title.trim() || !newDiscussion.content.trim()) return;
+    
+    createPost.mutate({
+      title: newDiscussion.title,
+      body: newDiscussion.content,
+      tags: newDiscussion.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+    });
+    
+    setNewDiscussion({ title: '', content: '', tags: '', category: 'General' });
+  };
+
+  const filteredDiscussions = discussions.filter((discussion: DiscussionItem) => {
+    const matchesSearch = discussion.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || discussion.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -166,7 +326,10 @@ const CommunityPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1A150E] via-[#2B2115] to-[#3D2914]">
       {/* Magical Hero Section */}
-      <div className="relative overflow-hidden">
+      <div
+        className="relative overflow-hidden"
+        style={{ backgroundImage: `url(${heroBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
         <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-amber-600/20 to-amber-800/20"></div>
         <div className="absolute inset-0">
           {[...Array(50)].map((_, i) => (
@@ -209,14 +372,81 @@ const CommunityPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Club Create Modal */}
+      <Dialog open={clubModalOpen} onOpenChange={setClubModalOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create New Club</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Club Name"
+              value={newClub.name}
+              onChange={(e) => setNewClub({ ...newClub, name: e.target.value })}
+              className="bg-gray-800 border-gray-600 text-white"
+            />
+            <Textarea
+              placeholder="Club Description"
+              value={newClub.description}
+              onChange={(e) => setNewClub({ ...newClub, description: e.target.value })}
+              className="bg-gray-800 border-gray-600 text-white"
+            />
+            <Button
+              onClick={() => {
+                addClub.mutate({ name: newClub.name, description: newClub.description, founderId: currentUserId });
+                setNewClub({ name: '', description: '' });
+                setClubModalOpen(false);
+              }}
+              className="w-full bg-green-600 hover:bg-green-700"
+              disabled={addClub.isPending}
+            >
+              {addClub.isPending ? 'Creating...' : 'Create Club'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workshop creation modal */}
+      <Dialog open={workshopModalOpen} onOpenChange={setWorkshopModalOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create New Workshop</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Workshop Name"
+              value={newWorkshop.name}
+              onChange={(e) => setNewWorkshop({ ...newWorkshop, name: e.target.value })}
+              className="bg-gray-800 border-gray-600 text-white"
+            />
+            <Textarea
+              placeholder="Workshop Description"
+              value={newWorkshop.description}
+              onChange={(e) => setNewWorkshop({ ...newWorkshop, description: e.target.value })}
+              className="bg-gray-800 border-gray-600 text-white"
+            />
+            <Button
+              onClick={() => {
+                addWorkshop.mutate({ name: newWorkshop.name, description: newWorkshop.description, hostId: currentUserId });
+                setNewWorkshop({ name: '', description: '' });
+                setWorkshopModalOpen(false);
+              }}
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              disabled={addWorkshop.isPending}
+            >
+              Create Workshop
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Navigation Tabs */}
       <div className="sticky top-0 z-40 bg-black/30 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-wrap gap-2 py-4">
             {[
               { id: 'discussions', label: 'Free Discussions', icon: MessageCircle, color: 'blue' },
-              { id: 'forums', label: 'Topic Forums', icon: Users, color: 'purple' },
-              { id: 'clubs', label: 'Creative Clubs', icon: BookOpen, color: 'green' },
+                            { id: 'clubs', label: 'Creative Clubs', icon: BookOpen, color: 'green' },
               { id: 'gallery', label: 'Art Gallery', icon: Paintbrush2, color: 'pink' },
               { id: 'workshops', label: 'Live Workshops', icon: PenTool, color: 'yellow' },
               { id: 'news', label: 'Community News', icon: Trophy, color: 'red' },
@@ -230,7 +460,7 @@ const CommunityPage: React.FC = () => {
                     : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <tab.icon className="h-5 w-5" />
+                {React.createElement(tab.icon, { className: 'h-5 w-5' })}
                 <span className="font-medium">{tab.label}</span>
                 {activeTab === tab.id && <Sparkles className="h-4 w-4 animate-pulse" />}
               </button>
@@ -365,7 +595,7 @@ const CommunityPage: React.FC = () => {
 
             {/* Discussions List */}
             <div className="space-y-6">
-              {sortedDiscussions.map((discussion) => (
+              {sortedDiscussions.map((discussion: DiscussionItem) => (
                 <div
                   key={discussion.id}
                   className={`group bg-gradient-to-r from-white/5 to-white/10 rounded-2xl p-6 border transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] ${
@@ -405,17 +635,29 @@ const CommunityPage: React.FC = () => {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6 text-gray-400">
-                          <button className="flex items-center gap-2 hover:text-red-400 transition-colors">
-                            <Heart className="h-5 w-5" />
+                          <button 
+                            onClick={() => likeDiscussion(discussion.id)} 
+                            className={`flex items-center gap-2 transition-colors ${
+                              discussion.user_has_liked ? 'text-red-400' : 'hover:text-red-400'
+                            }`}
+                            disabled={likePost.isPending}
+                          >
+                            <Heart className={`h-5 w-5 ${discussion.user_has_liked ? 'fill-current' : ''}`} />
                             <span>{discussion.likes}</span>
                           </button>
-                          <button className="flex items-center gap-2 hover:text-blue-400 transition-colors">
+                          <button onClick={() => setExpandedDiscussion(expandedDiscussion===discussion.id?null:discussion.id)} className="flex items-center gap-2 hover:text-blue-400 transition-colors">
                             <MessageSquare className="h-5 w-5" />
                             <span>{discussion.replies}</span>
                           </button>
+                          <ReportDialog contentId={discussion.id} contentType="discussion" triggerClassName="border-red-500 text-red-500 hover:bg-red-600 hover:text-white px-2 py-1 text-xs" />
                           <div className="flex items-center gap-2">
                             <Eye className="h-5 w-5" />
                             <span>{discussion.views}</span>
+                            {discussion.author === currentUser && (
+                              <button onClick={() => deleteDiscussion(discussion.id)} className="text-red-500 hover:text-red-600">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -428,6 +670,10 @@ const CommunityPage: React.FC = () => {
                           </button>
                         </div>
                       </div>
+
+                      {expandedDiscussion===discussion.id && (
+                        <DiscussionComments discussionId={discussion.id} />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -437,7 +683,7 @@ const CommunityPage: React.FC = () => {
         )}
 
         {/* Forums Tab */}
-        {activeTab === 'forums' && (
+        {false && (
           <div className="space-y-8">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
@@ -493,35 +739,85 @@ const CommunityPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clubs.map((club) => (
+              {clubs.map((club) => {
+                const isMember = club.members.includes(currentUserId);
+                const isPending = false; // No pending system in new backend
+                return (
                 <div
                   key={club.id}
                   className="bg-gradient-to-br from-green-900/30 to-blue-900/30 rounded-2xl p-6 border border-green-500/20 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold text-white">{club.name}</h3>
-                    <div className="px-3 py-1 bg-green-500/20 text-green-300 text-xs rounded-full">{club.level}</div>
                   </div>
 
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-300">Members</span>
-                      <span className="text-white font-semibold">{club.members}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Activity</span>
-                      <span
-                        className={`font-semibold ${
-                          club.activity === 'Very Active' ? 'text-green-400' : club.activity === 'Active' ? 'text-yellow-400' : 'text-orange-400'
-                        }`}
-                      >
-                        {club.activity}
-                      </span>
+                      <span className="text-white font-semibold">{club.members.length}</span>
                     </div>
                   </div>
 
-                  <button className="w-full py-3 bg-green-500/20 text-green-300 rounded-xl font-semibold hover:bg-green-500/30 transition-all flex items-center justify-center gap-2">
-                    <Crown className="h-4 w-4" /> Join Club
+                  {/* Action buttons */}
+                  {isMember && (
+                    <button
+                      onClick={() => setLocation(`/clubs/${club.id}`)}
+                      className="w-full py-3 bg-green-600/30 text-green-200 rounded-xl font-semibold hover:bg-green-600/40 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Crown className="h-4 w-4" /> Enter Club
+                    </button>
+                  )}
+                  {isPending && !isMember && (
+                    <div className="w-full py-3 bg-yellow-600/30 text-yellow-200 rounded-xl font-semibold flex items-center justify-center gap-2">
+                      Request Pending
+                    </div>
+                  )}
+                  {!isMember && !isPending && (
+                    <button
+                      onClick={() => joinClub.mutate({ clubId: club.id, userId: currentUserId })}
+                      className="w-full py-3 bg-green-500/20 text-green-300 rounded-xl font-semibold hover:bg-green-500/30 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Crown className="h-4 w-4" /> Request to Join
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            </div>
+          </div>
+
+        )}
+
+        {/* Gallery Tab */}
+        {activeTab === 'workshops' && (
+          <div className="space-y-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                <PenTool className="h-10 w-10 text-purple-400" /> Creative Workshops <Sparkles className="h-8 w-8 text-yellow-400 animate-pulse" />
+              </h2>
+              <p className="text-xl text-gray-300">Collaborate on novels and hone your craft</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {workshops.map((ws) => (
+                <div
+                  key={ws.id}
+                  className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-2xl p-6 border border-purple-500/20 hover:border-purple-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
+                >
+                  <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                    {ws.name}
+                    <span className="text-xs bg-purple-600/50 px-2 py-0.5 rounded-full">{ws.members.length} members</span>
+                  </h3>
+                  <p className="text-gray-300 mb-4 line-clamp-3 min-h-[48px]">{ws.description}</p>
+
+                  <button
+                    onClick={() => {
+                      joinWorkshop.mutate({ workshopId: ws.id, userId: currentUserId });
+                      setLocation(`/workshops/${ws.id}`);
+                    }}
+                    className="w-full py-3 bg-purple-500/20 text-purple-300 rounded-xl font-semibold hover:bg-purple-500/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Crown className="h-4 w-4" /> Join Workshop
                   </button>
                 </div>
               ))}
@@ -529,7 +825,6 @@ const CommunityPage: React.FC = () => {
           </div>
         )}
 
-        {/* Gallery Tab */}
         {activeTab === 'gallery' && (
           <div className="space-y-8">
             <div className="text-center mb-12">
@@ -546,28 +841,35 @@ const CommunityPage: React.FC = () => {
                   key={art.id}
                   className="group bg-gradient-to-br from-pink-900/30 to-purple-900/30 rounded-2xl p-4 border border-pink-500/20 hover:border-pink-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
                 >
-                  <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl mb-4 flex items-center justify-center text-6xl">
-                    {art.image}
-                  </div>
+                  <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl mb-4 flex items-center justify-center overflow-hidden">
+                     {art.imageUrl? <img src={art.imageUrl} alt={art.title} className="object-cover w-full h-full"/> : <span className="text-6xl">{art.image}</span>}
+                   </div>
                   <h3 className="text-lg font-bold text-white mb-2 group-hover:text-pink-300 transition-colors">{art.title}</h3>
                   <p className="text-gray-400 text-sm mb-3">by {art.artist}</p>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-pink-400">
-                      <Heart className="h-4 w-4" />
-                      <span className="text-sm">{art.likes}</span>
-                    </div>
+                    <button onClick={()=>likeArt(art.id)} className="flex items-center gap-2 text-pink-400 hover:text-pink-300">
+                       <Heart className="h-4 w-4" />
+                       <span className="text-sm">{art.likes}</span>
+                     </button>
                     <button className="p-2 bg-pink-500/20 text-pink-300 rounded-lg hover:bg-pink-500/30 transition-all">
                       <Eye className="h-4 w-4" />
                     </button>
+                    <ReportDialog contentId={art.id} contentType="art" triggerClassName="border-red-500 text-red-500 hover:bg-red-600 hover:text-white px-1 py-0.5 text-xs" />
+                     {art.artist === currentUser && (
+                       <button onClick={() => deleteArt(art.id)} className="text-red-500 hover:text-red-600">
+                         <Trash2 className="h-4 w-4" />
+                       </button>
+                     )}
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="text-center">
-              <button className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
-                <ImagePlus className="h-5 w-5" /> Upload Your Art
-              </button>
+              <button onClick={()=>uploadInputRef.current?.click()} className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
+                 <ImagePlus className="h-5 w-5" /> Upload Your Art
+               </button>
+               <input type="file" accept="image/*" ref={uploadInputRef} className="hidden" onChange={(e)=>{const f=e.target.files?.[0]; if(f) void handleUploadArt(f);}}/>
             </div>
           </div>
         )}
@@ -635,29 +937,38 @@ const CommunityPage: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-2xl p-6 border border-red-500/20">
-                <div className="flex items-center gap-3 mb-4">
-                  <Trophy className="h-6 w-6 text-yellow-400" />
-                  <span className="text-red-300 font-semibold">Contest Winner Announcement</span>
-                  <span className="text-gray-400 text-sm">2 hours ago</span>
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Monthly Writing Contest Results Are In!</h3>
-                <p className="text-gray-300">
-                  Congratulations to all participants! The winning entries showcased incredible creativity and storytelling prowess.
-                </p>
-              </div>
+              {isAdmin && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const titleInput = form.elements.namedItem('title') as HTMLInputElement;
+                    const bodyInput = form.elements.namedItem('body') as HTMLTextAreaElement;
+                    if (titleInput.value.trim() && bodyInput.value.trim()) {
+                      addNews(titleInput.value.trim(), bodyInput.value.trim());
+                      titleInput.value = '';
+                      bodyInput.value = '';
+                    }
+                  }}
+                  className="bg-white/5 p-4 rounded-xl space-y-3"
+                >
+                  <Input name="title" placeholder="News title" className="bg-black/20" />
+                  <Textarea name="body" placeholder="News content" className="bg-black/20" />
+                  <Button type="submit" className="bg-red-600 hover:bg-red-700">Post News</Button>
+                </form>
+              )}
 
-              <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-6 border border-blue-500/20">
-                <div className="flex items-center gap-3 mb-4">
-                  <Sparkles className="h-6 w-6 text-blue-400" />
-                  <span className="text-blue-300 font-semibold">Platform Update</span>
-                  <span className="text-gray-400 text-sm">1 day ago</span>
+              {news.map((item) => (
+                <div key={item.id} className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-2xl p-6 border border-red-500/20">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Trophy className="h-6 w-6 text-yellow-400" />
+                    <span className="text-red-300 font-semibold">{item.category}</span>
+                    <span className="text-gray-400 text-sm">{item.timestamp}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-gray-300 whitespace-pre-line">{item.content}</p>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">New Features Released!</h3>
-                <p className="text-gray-300">
-                  We've added real-time collaboration tools, enhanced search functionality, and improved mobile experience.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -665,9 +976,21 @@ const CommunityPage: React.FC = () => {
 
       {/* Floating Action Button */}
       <div className="fixed bottom-8 right-8">
-        <button className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center">
-          <PlusCircle className="h-8 w-8" />
-        </button>
+        {/* FAB for create club/workshop */}
+        {(activeTab === 'clubs' || activeTab === 'workshops') && (
+          <button
+            onClick={() => {
+              if (activeTab === 'clubs') {
+                setClubModalOpen(true);
+              } else {
+                setWorkshopModalOpen(true);
+              }
+            }}
+            className="w-16 h-16 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center"
+          >
+            <Plus className="h-8 w-8" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -9,12 +9,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
+type StoryVariant = 'horizontal' | 'vertical' | 'compact';
+
 interface StoryCardProps {
   story: StoryCardType;
   isBookmarked?: boolean;
   isNovel?: boolean;
   isPurchased?: boolean;
-  variant?: "horizontal" | "vertical" | "compact";
+  variant?: StoryVariant;
   showActionButton?: boolean;
 }
 
@@ -23,7 +25,7 @@ export default function StoryCard({
   isBookmarked = false, 
   isNovel = false,
   isPurchased = false,
-  variant = "vertical",
+  variant = "vertical" as StoryVariant,
   showActionButton = true
 }: StoryCardProps) {
   const { isAuthenticated } = useAuth();
@@ -79,27 +81,33 @@ export default function StoryCard({
   if (variant === "horizontal") {
     return (
       <div className="story-card bg-amber-50 rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row">
-        <Link href={`/story/${story.id}`}>
-          <a className="block md:w-1/3">
-            <img 
-              src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
-              alt={`Cover for ${story.title}`} 
-              className="w-full h-40 sm:h-48 md:h-full object-cover" loading="lazy" decoding="async" 
-            />
-          </a>
+        <Link 
+          href={`/story/${story.id}`} 
+          className="block md:w-1/3 hover:opacity-90 transition-opacity"
+        >
+          <img 
+            src={story.coverImage || ""} 
+            alt={`Cover for ${story.title}`} 
+            className="w-full h-40 sm:h-48 md:h-full object-cover" 
+            loading="lazy" 
+            decoding="async" 
+          />
         </Link>
         
         <div className="p-4 md:p-6 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-2">
             <div className="flex flex-wrap gap-1">
               {story.genres.slice(0, 3).map((genre) => (
-                <Link key={genre.id} href={`/genres/${genre.id}`}>
-                  <a className={cn(
-                    "text-xs font-cinzel text-white px-2 py-1 rounded",
-                    genre.id % 2 === 0 ? "bg-amber-500" : "bg-amber-800"
-                  )}>
-                    {genre.name}
-                  </a>
+                <Link 
+                  key={genre.id} 
+                  href={`/genres/${genre.id}`}
+                  className={cn(
+                    "text-xs font-cinzel text-white px-2 py-1 rounded inline-block",
+                    genre.id % 2 === 0 ? "bg-amber-500" : "bg-amber-800",
+                    "hover:opacity-90 transition-opacity"
+                  )}
+                >
+                  {genre.name}
                 </Link>
               ))}
             </div>
@@ -124,7 +132,7 @@ export default function StoryCard({
               <Link href={`/profile/${story.author?.id}`}>
                 <a className="flex items-center group">
                   <img 
-                    src={story.author?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
+                    src={story.author?.avatarUrl || ""} 
                     className="w-8 h-8 rounded-full object-cover" 
                     alt={`${story.author?.fullName}'s avatar`} 
                   />
@@ -156,10 +164,12 @@ export default function StoryCard({
               
               {showActionButton && (
                 <Button asChild className="bg-amber-800 hover:bg-amber-500 text-white">
-                  <Link href={`/story/${story.id}`}>
-                    <a className="flex items-center gap-1">
-                      Read <ArrowRight className="h-4 w-4" />
-                    </a>
+                  <Link 
+                    href={`/story/${story.id}`}
+                    className="text-amber-900 hover:text-amber-700 font-medium inline-flex items-center"
+                  >
+                    Read {isNovel ? 'Novel' : 'Story'}
+                    <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </Button>
               )}
@@ -173,21 +183,25 @@ export default function StoryCard({
   if (variant === "compact") {
     return (
       <div className="story-card flex items-center gap-3 p-3 bg-amber-50/50 rounded-lg hover:bg-amber-50 transition-colors">
-        <Link href={`/story/${story.id}`}>
-          <a className="block flex-shrink-0">
-            <img 
-              src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
-              alt={`Cover for ${story.title}`} 
-              className="w-12 h-12 object-cover rounded" loading="lazy" decoding="async" 
-            />
-          </a>
+        <Link 
+          href={`/story/${story.id}`}
+          className="block flex-shrink-0"
+        >
+          <img 
+            src={story.coverImage || ""} 
+            alt={`Cover for ${story.title}`} 
+            className="w-12 h-12 object-cover rounded" 
+            loading="lazy" 
+            decoding="async" 
+          />
         </Link>
         
         <div className="flex-1 min-w-0">
-          <Link href={`/story/${story.id}`}>
-            <a className="hover:text-amber-700 block">
-              <h3 className="font-cinzel font-bold text-sm truncate">{story.title}</h3>
-            </a>
+          <Link 
+            href={`/story/${story.id}`}
+            className="hover:text-amber-700 block"
+          >
+            <h3 className="font-cinzel font-bold text-sm truncate">{story.title}</h3>
           </Link>
           
           <div className="flex items-center text-xs text-gray-500">
@@ -216,30 +230,57 @@ export default function StoryCard({
     );
   }
   
-  // Default vertical card
+  // Base classes
+  const baseContainerClasses = "story-card bg-amber-50 rounded-lg shadow-md overflow-hidden flex flex-col h-full";
+  const baseImageClasses = "w-full object-cover transition-transform duration-300 group-hover:scale-105";
+
+  // Determine variant-specific classes
+  const variantClasses = (() => {
+    switch (variant as StoryVariant) {
+      case 'compact':
+        return {
+          container: 'max-w-xs',
+          image: 'h-32'
+        };
+      case 'horizontal':
+      case 'vertical':
+      default:
+        return {
+          container: 'max-w-sm',
+          image: 'h-48 sm:h-56'
+        };
+    }
+  })();
+
   return (
-    <div className="story-card bg-amber-50 rounded-lg shadow-md overflow-hidden flex flex-col h-full">
-      <Link href={`/story/${story.id}`}>
-        <a className="block">
-          <img 
-            src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
-            alt={`Cover for ${story.title}`} 
-            className="w-full h-40 sm:h-48 md:h-60 object-cover" loading="lazy" decoding="async" 
-          />
-        </a>
+    <div className={cn(baseContainerClasses, variantClasses.container)}>
+      <Link 
+        href={`/story/${story.id}`} 
+        className="block relative group"
+      >
+        <img 
+          src={story.coverImage || ""} 
+          alt={`Cover for ${story.title}`} 
+          className={cn(baseImageClasses, variantClasses.image)}
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
       </Link>
       
       <div className="p-4 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-2">
           <div className="flex flex-wrap gap-1">
             {story.genres.slice(0, 2).map((genre) => (
-              <Link key={genre.id} href={`/genres/${genre.id}`}>
-                <a className={cn(
+              <Link 
+                key={genre.id} 
+                href={`/genres/${genre.id}`}
+                className={cn(
                   "text-xs font-cinzel text-white px-2 py-1 rounded",
                   genre.id % 2 === 0 ? "bg-amber-500" : "bg-amber-800"
-                )}>
-                  {genre.name}
-                </a>
+                )}
+              >
+                {genre.name}
               </Link>
             ))}
           </div>
@@ -249,10 +290,11 @@ export default function StoryCard({
           </div>
         </div>
         
-        <Link href={`/story/${story.id}`}>
-          <a className="hover:text-amber-700">
-            <h3 className="font-cinzel text-lg font-bold mb-1">{story.title}</h3>
-          </a>
+        <Link 
+          href={`/story/${story.id}`}
+          className="hover:text-amber-700 block mb-1"
+        >
+          <h3 className="font-cinzel text-lg font-bold">{story.title}</h3>
         </Link>
         
         <p className="text-sm text-gray-600 mb-4 flex-grow">
@@ -260,17 +302,18 @@ export default function StoryCard({
         </p>
         
         <div className="flex justify-between items-center mt-auto">
-          <Link href={`/profile/${story.author?.id}`}>
-            <a className="flex items-center group">
-              <img 
-                src={story.author?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
-                className="w-8 h-8 rounded-full object-cover" 
-                alt={`${story.author?.fullName}'s avatar`} 
-              />
-              <span className="ml-2 text-sm font-medium group-hover:text-amber-700">
-                {story.author?.fullName}
-              </span>
-            </a>
+          <Link 
+            href={`/profile/${story.author?.id}`}
+            className="flex items-center group"
+          >
+            <img 
+              src={story.author?.avatarUrl || ""} 
+              className="w-8 h-8 rounded-full object-cover" 
+              alt={`${story.author?.fullName}'s avatar`} 
+            />
+            <span className="ml-2 text-sm font-medium group-hover:text-amber-700">
+              {story.author?.fullName}
+            </span>
           </Link>
           
           <Button 

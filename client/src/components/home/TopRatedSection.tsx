@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import bgImg from "@/assets/00a75467-b343-4cf1-a5c7-0b7d1270efc4.png";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Star, StarHalf } from "lucide-react";
 import { StoryCard } from "@/lib/types";
@@ -13,8 +14,12 @@ export default function TopRatedSection() {
   
   if (isLoading) {
     return (
-      <section className="py-12 px-4 bg-amber-50">
-        <div className="container mx-auto max-w-6xl">
+      <section
+        className="relative py-12 px-4 text-amber-50 bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <div className="absolute inset-0 bg-brown-dark/25" />
+        <div className="relative container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Top Rated This Month</h2>
             <Link href="/top-rated" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
@@ -44,8 +49,12 @@ export default function TopRatedSection() {
   }
   
   return (
-    <section className="py-12 px-4 bg-amber-50">
-      <div className="container mx-auto max-w-6xl">
+    <section
+        className="relative py-12 px-4 text-amber-50 bg-center bg-cover"
+        style={{ backgroundImage: `url(${bgImg})` }}
+      >
+        <div className="absolute inset-0 bg-brown-dark/25" />
+        <div className="relative container mx-auto max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <h2 className="font-cinzel text-2xl md:text-3xl font-bold text-brown-dark">Top Rated This Month</h2>
           <Link href="/top-rated" className="text-amber-500 hover:text-amber-700 font-cinzel text-sm flex items-center transition-colors">
@@ -90,9 +99,7 @@ export default function TopRatedSection() {
                   </div>
                   
                   <p className="text-xs text-gray-500 mb-3">
-                    By {story.author?.fullName || 'Unknown'} • 
-                    {story.genres.map(g => g.name).join(', ')} • 
-                    {Math.floor(Math.random() * 500)}k reads
+                    By {story.author?.fullName || 'Unknown'} • {story.genres.map(g => g.name).join(', ')}
                   </p>
                   
                   <Button asChild className="w-full bg-amber-800 hover:bg-amber-500 text-white py-2 rounded-md transition-colors text-sm font-cinzel">

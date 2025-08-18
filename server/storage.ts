@@ -42,6 +42,10 @@ export interface IStorage {
   getBookmarks(userId: number): Promise<Story[]>;
   createBookmark(bookmark: InsertBookmark): Promise<Bookmark>;
   deleteBookmark(userId: number, storyId: number): Promise<boolean>;
+  // Admin metrics
+  countUsers(): Promise<number>;
+  countSubscribers(): Promise<number>;
+  countStories(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -74,6 +78,22 @@ export class MemStorage implements IStorage {
     
     // Initialize with default genres
     this.seedGenres();
+
+    // Seed default admin user
+    const adminId = this.userIdCounter++;
+    this.users.set(adminId, {
+      id: adminId,
+      username: "hekaadmin25",
+      password: "hek29200",
+      email: "admin@example.com",
+      fullName: "Admin User",
+      bio: "",
+      avatarUrl: "",
+      isPremium: false,
+      isAuthor: false,
+      isAdmin: true,
+    });
+
   }
 
   private seedGenres() {
@@ -117,6 +137,7 @@ export class MemStorage implements IStorage {
       avatarUrl: null,
       isPremium: null,
       isAuthor: null,
+    isAdmin: null,
       ...insertUser,
     };
     this.users.set(id, user);
@@ -362,8 +383,23 @@ export class MemStorage implements IStorage {
     if (!bookmark) return false;
     return this.bookmarks.delete(bookmark.id);
   }
+
+  // Admin metric helpers
+  async countUsers(): Promise<number> {
+    return this.users.size;
+  }
+
+  async countSubscribers(): Promise<number> {
+    return Array.from(this.users.values()).filter(u => u.isPremium).length;
+  }
+
+  async countStories(): Promise<number> {
+    return this.stories.size;
+  }
+
+  // Currently we are pausing DB work, so we fall back to the in-memory implementation.
+// Swap to `new DatabaseStorage()` once the database layer is finished.
 }
 
 // Currently we are pausing DB work, so we fall back to the in-memory implementation.
-// Swap to `new DatabaseStorage()` once the database layer is finished.
 export const storage = new MemStorage();

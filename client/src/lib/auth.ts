@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { apiRequest } from "./queryClient";
+import { supabase } from "./supabase";
 import { AuthUser } from "./types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -13,13 +14,14 @@ interface AuthContextType {
   logout: () => Promise<void>;
   upgradeToPremium: () => Promise<void>;
   updateUser: (user: Partial<AuthUser>) => void;
+  loginWithGoogle: () => Promise<void>;
 }
 
 interface RegisterData {
   username: string;
+  email: string;
   password: string;
   confirmPassword: string;
-  email: string;
   fullName: string;
 }
 
@@ -32,22 +34,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Fetch current user
   const { data: user, isLoading } = useQuery({
-    queryKey: ['/api/auth/me']
+    queryKey: ['auth','session'],
+    queryFn: async ()=>{
+      const { data } = await supabase.auth.getUser();
+      return data.user;
+    }
   });
   
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
-      const field_key = username.includes("@") ? "email" : "username";
-      const payload: Record<string, string> = { field_key, field_value: username, password };
-      if (field_key === "email") {
-        payload.email = username;
+      // Determine if input is email or username
+      let email = username;
+      if (!username.includes('@')) {
+        const { data: prof, error: profErr } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', username)
+          .single();
+        if (profErr || !prof?.email) {
+          throw new Error('Username not found');
+        }
+        email = prof.email;
       }
-      const res = await apiRequest("POST", "/auth/login", payload);
-      return res.json();
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return data.user;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth','session'] });
       setIsAuthenticated(true);
       toast({
         title: "Welcome back!",
@@ -66,12 +84,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      const { username, email, password } = userData;
-      const res = await apiRequest("POST", "/auth/signup", { username, email, password });
-      return res.json();
+      const { username, email, password, fullName } = userData;
+      const cleanUsername = username.toLowerCase();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username: cleanUsername, fullName },
+        },
+      });
+      if (error) {
+        console.error('signUp error', error);
+        throw error;
+      }
+      // ensure profiles table row has username/email synced
+      const userId = data.user?.id;
+      if (userId) {
+        const { error: upsertErr } = await supabase
+          .from('profiles')
+          .upsert({ id: userId, username: cleanUsername, email, full_name: fullName });
+        if (upsertErr) {
+          console.error('profiles upsert error', upsertErr);
+          throw upsertErr;
+        }
+      }
+      return data.user;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth','session'] });
       setIsAuthenticated(true);
       toast({
         title: "Account created!",
@@ -90,8 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/auth/logout", {});
-      return res.json();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.clear();
@@ -110,16 +150,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
   
-  // Upgrade to premium mutation
+  // Google OAuth login
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/auth/callback'
+      }
+    });
+    if (error) {
+      toast({
+        title: 'Google sign-in failed',
+        description: error.message,
+        variant:'destructive'
+      });
+    }
+  };
+
   const upgradeMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not logged in");
-      const userId = (user as AuthUser).id;
+      const userId = (user as any).id;
       const res = await apiRequest("POST", `/api/users/${userId}/premium`, {});
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['auth','session'] });
       toast({
         title: "Upgrade successful!",
         description: "You now have premium access to all features.",
@@ -159,20 +215,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Update user data in context
   const updateUser = (userData: Partial<AuthUser>) => {
     if (user) {
-      queryClient.setQueryData(['/api/auth/me'], { ...user, ...userData });
+      queryClient.setQueryData(['auth','session'], { ...(user as any), ...userData });
     }
   };
 
   // Create the context value object
   const value = {
-    user: user as AuthUser | null,
+    user: user as unknown as AuthUser | null,
     isLoading,
     isAuthenticated,
     login,
     register,
     logout,
     upgradeToPremium,
-    updateUser
+    updateUser,
+    loginWithGoogle: loginWithGoogle
   };
 
   // Return the provider with JSX

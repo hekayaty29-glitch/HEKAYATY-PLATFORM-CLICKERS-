@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, BookOpen } from "lucide-react";
 import StoryCard from "@/components/story/StoryCard";
 import { StoryCard as StoryCardType } from "@/lib/types";
+import bgImg from "@/assets/d2c8245c-c591-4cc9-84d2-27252be8dffb.png";
 
 export default function AllStoriesSection() {
   const { data: stories, isLoading } = useQuery<StoryCardType[]>({
@@ -15,8 +16,12 @@ export default function AllStoriesSection() {
   );
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-r from-midnight-blue to-brown-dark text-amber-50">
-      <div className="container mx-auto max-w-6xl">
+    <section
+      className="relative py-16 px-4 text-amber-50 bg-center bg-cover"
+      style={{ backgroundImage: `url(${bgImg})` }}
+    >
+      <div className="absolute inset-0 bg-brown-dark/40" />
+      <div className="relative container mx-auto max-w-6xl">
         {/* Heading */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <BookOpen className="h-6 w-6 text-amber-400" />

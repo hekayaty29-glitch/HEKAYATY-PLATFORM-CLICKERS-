@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import ReportDialog from "@/components/common/ReportDialog";
 import { 
   Dialog, 
   DialogContent, 
@@ -43,6 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import CommentsSection from "@/components/common/CommentsSection";
 
 const ratingFormSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -53,6 +55,7 @@ export default function StoryPage() {
   const [, params] = useRoute("/story/:id");
   const storyId = params ? parseInt(params.id) : 0;
   const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.username === 'Admin';
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedRating, setSelectedRating] = useState(0);
@@ -337,6 +340,8 @@ export default function StoryPage() {
                       Rate this Story
                     </Button>
                   </DialogTrigger>
+
+                  <ReportDialog contentId={storyId} contentType="story" />
                   <DialogContent className="bg-amber-50 border-amber-500">
                     <DialogHeader>
                       <DialogTitle className="font-cinzel text-brown-dark">Rate this Story</DialogTitle>
@@ -494,6 +499,14 @@ export default function StoryPage() {
                   </CardContent>
                 </Card>
                 
+                {story && (
+                  <div className="mb-4 text-center">
+                    <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+                      <Link href={`/listen/${story.id}`}><a>Listen</a></Link>
+                    </Button>
+                  </div>
+                )}
+                
                 {story.author && (
                   <Card className="border-amber-500/30 shadow-sm bg-amber-50/60">
                     <CardContent className="p-4">
@@ -544,8 +557,14 @@ export default function StoryPage() {
               </div>
             </div>
           </div>
+          {isAdmin && (
+            <div className="mt-6 p-4 border rounded-lg bg-muted/20">
+              <h3 className="text-lg font-semibold mb-4">Admin Controls</h3>
+              <p className="text-sm text-muted-foreground">Story editor has been moved to a separate project.</p>
+            </div>
+          )}
         </div>
       </div>
-    </>
+      </>
   );
 }

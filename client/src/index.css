@@ -159,7 +159,7 @@
 
 /* Hero section with castle background */
 .hero-section {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.6)), url('./assets/castle-background.png');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35)), url('./assets/faf6c4d1-e73f-4acb-9193-5de6bf9f957a (1).png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
