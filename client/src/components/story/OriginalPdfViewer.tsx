@@ -1,10 +1,6 @@
 import React, { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Music } from "lucide-react";
-
-// IMPORTANT: Tell pdfjs where to find its worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+import { ChevronLeft, ChevronRight, Bookmark, Share2, Eye } from "lucide-react";
 
 interface OriginalPdfViewerProps {
   title: string;
@@ -14,66 +10,77 @@ interface OriginalPdfViewerProps {
 }
 
 const OriginalPdfViewer: React.FC<OriginalPdfViewerProps> = ({ title, author, pdfUrl, audioUrl }) => {
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-  };
-
-  const goPrevPage = () => setPageNumber((p) => Math.max(1, p - 1));
-  const goNextPage = () => setPageNumber((p) => (numPages ? Math.min(numPages, p + 1) : p + 1));
 
   return (
-    <div className="py-8 px-4 min-h-screen bg-gradient-to-br from-[#1A150E] via-[#2B2115] to-[#3D2914] text-center text-brown-dark">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="font-cinzel text-3xl md:text-4xl font-bold mb-1 text-amber-700 drop-shadow-sm">
-          {title}
-        </h1>
-        <p className="mb-6 text-amber-500 italic">By {author}</p>
+    <div className="reader-wrapper reader-theme-light reader-font-serif reader-text-md bg-[#FBF8F1] shadow-lg border border-amber-200 rounded-md mx-auto p-6 md:p-10 max-w-3xl lg:max-w-4xl mb-8">
+      {/* Header with controls */}
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{title}</h1>
+          <p className="text-muted-foreground">By {author}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" title="Bookmark this story">
+            <Bookmark className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" title="Share this story">
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
 
-        {/* Optional soundtrack */}
-        {audioUrl && (
-          <div className="mb-6 flex items-center gap-3 justify-center">
-            <Music className="h-5 w-5 text-amber-600" />
-            <audio controls>
-              <source src={audioUrl} />
-              Your browser does not support the audio element.
-            </audio>
+
+      {/* PDF Content - Simplified without react-pdf */}
+      <div className="text-center">
+        {!pdfUrl ? (
+          <div className="py-20 text-center text-muted-foreground">
+            <p>No PDF URL provided</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">PDF Document</h3>
+              <p className="text-sm text-muted-foreground mb-4">Click to view the full document</p>
+            </div>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={() => {
+                  // For base64 PDFs, create a blob URL and open directly
+                  if (pdfUrl.startsWith('data:application/pdf;base64,')) {
+                    const base64Data = pdfUrl.split(',')[1];
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'application/pdf' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                  } else {
+                    // For regular URLs, open directly
+                    window.open(pdfUrl, '_blank');
+                  }
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View PDF
+              </Button>
+              
+              <div className="border rounded-lg p-4">
+                <iframe 
+                  src={pdfUrl}
+                  width="100%" 
+                  height="600px"
+                  className="border-0 rounded"
+                  title="PDF Viewer"
+                />
+              </div>
+            </div>
           </div>
         )}
-
-        {/* Controls */}
-        <div className="flex justify-center items-center gap-3 mb-4">
-          <Button variant="outline" size="icon" onClick={goPrevPage} disabled={pageNumber <= 1}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-sm font-medium">
-            Page {pageNumber} {numPages ? `of ${numPages}` : ""}
-          </div>
-          <Button variant="outline" size="icon" onClick={goNextPage} disabled={!!numPages && pageNumber >= numPages}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          {/* Zoom */}
-          <div className="ml-6 flex gap-2">
-            <Button variant="outline" size="icon" onClick={() => setScale((s) => Math.max(0.5, s - 0.1))}>
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setScale((s) => Math.min(2.5, s + 0.1))}>
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* PDF display */}
-        <div className="parchment-page overflow-auto">
-          <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} loading={<p className="py-10">Loading PDF…</p>}>
-            <Page pageNumber={pageNumber} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
-          </Document>
-        </div>
       </div>
     </div>
   );

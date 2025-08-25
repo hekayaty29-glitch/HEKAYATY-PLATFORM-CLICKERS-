@@ -144,7 +144,7 @@ export default function Header() {
             </Link>
           )}
           
-          {isAuthenticated && user?.isAdmin && (
+          {isAuthenticated && isAdmin && (
             <Link href="/admin" className="font-cinzel text-sm hover:text-amber-500 transition-colors flex items-center gap-1">
               <Shield className="h-4 w-4" />
               <span>Admin</span>
@@ -305,7 +305,7 @@ export default function Header() {
                   </Link>
                 )}
                 
-                {isAuthenticated && user?.isAdmin && (
+                {isAuthenticated && isAdmin && (
                   <Link href="/admin" onClick={closeMobileMenu} className="flex items-center py-2 px-1 rounded-md hover:bg-amber-900 transition-colors">
                     <Shield className="mr-2 h-5 w-5" />
                     <span>Admin</span>

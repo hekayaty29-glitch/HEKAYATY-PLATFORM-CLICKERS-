@@ -67,6 +67,12 @@ export default function WritersGemsSection() {
           <h3 className="font-cinzel text-2xl md:text-3xl text-amber-50 group-hover:text-amber-400 transition-colors">Browse Writer's Gems</h3>
         </Link>
         <p className="font-cormorant italic mt-2 text-amber-200">No gem stories available currently.</p>
+        <Link
+          href="/publish"
+          className="inline-block mt-6 px-6 py-3 bg-amber-400 text-brown-dark font-semibold rounded shadow hover:bg-amber-500 transition-colors"
+        >
+          Publish your workshop gem
+        </Link>
       </section>
     );
   }
@@ -78,7 +84,7 @@ export default function WritersGemsSection() {
     >
       <div className="absolute inset-0 bg-brown-dark/40" />
       <div className="relative container mx-auto max-w-6xl">
-        <div className="flex items-center justify-center gap-3 mb-10">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <Gem className="h-6 w-6 text-amber-400" />
           <Link href="/gems" className="hover:text-amber-400 transition-colors">
             <h2 className="font-cinzel text-3xl md:text-4xl font-bold text-center">
@@ -87,7 +93,14 @@ export default function WritersGemsSection() {
           </Link>
           <Gem className="h-6 w-6 text-amber-400" />
         </div>
-
+        <div className="text-center mb-8">
+          <Link
+            href="/publish"
+            className="inline-block px-6 py-3 bg-amber-400 text-brown-dark font-semibold rounded shadow hover:bg-amber-500 transition-colors"
+          >
+            Publish your workshop gem
+          </Link>
+        </div>
         <div className="relative max-w-md mx-auto mb-10">
           <input
             type="text"

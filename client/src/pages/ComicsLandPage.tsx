@@ -12,7 +12,7 @@ export default function ComicsLandPage() {
   const { comics } = useFeaturedComics();
   const { creators } = useTopCreators();
   const [genre, setGenre] = useState<string | null>(null);
-  const displayed = genre ? comics.filter(c=>c.tags.includes(genre)) : comics;
+  const displayed = genre ? comics.filter((c: any)=>c.tags.includes(genre)) : comics;
 
   return (
     <div className="relative text-black dark:text-amber-50 font-sans" style={{backgroundImage:`url(${bg})`,backgroundSize:'cover',backgroundPosition:'center'}}>
@@ -38,13 +38,13 @@ export default function ComicsLandPage() {
       <section className="container mx-auto px-4 py-20">
         <h2 className="font-bangers text-4xl md:text-5xl text-center mb-10 text-purple-700 dark:text-amber-400">Featured Comics</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {displayed.map((comic,i)=>(
-            <motion.div key={comic.id} onClick={()=> window.location.href=`/comics/${comic.id}`} whileHover={{scale:1.05}} className="relative group rounded-xl overflow-hidden shadow-lg cursor-pointer">
+          {displayed.map((comic: any, i: number)=>(
+            <motion.div key={comic.id} onClick={()=> window.location.href=`/story/${comic.id}`} whileHover={{scale:1.05}} className="relative group rounded-xl overflow-hidden shadow-lg cursor-pointer">
               <img src={`https://source.unsplash.com/random/400x600?sig=${i}&comic`} alt="comic" className="h-72 w-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
                 <span className="text-white font-bold">{comic.title}</span>
                 <div className="flex gap-2 mt-2 flex-wrap">
-                  {comic.tags.map(tag=>(
+                  {comic.tags.map((tag: string)=>(
                     <span key={tag} className="bg-red-600 text-white text-xs px-2 py-0.5 rounded">{tag}</span>
                   ))}
                 </div>

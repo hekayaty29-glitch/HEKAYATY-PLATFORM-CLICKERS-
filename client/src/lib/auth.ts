@@ -85,30 +85,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
       const { username, email, password, fullName } = userData;
-      const cleanUsername = username.toLowerCase();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username: cleanUsername, fullName },
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ username, email, password, fullName }),
       });
-      if (error) {
-        console.error('signUp error', error);
-        throw error;
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Registration failed');
       }
-      // ensure profiles table row has username/email synced
-      const userId = data.user?.id;
-      if (userId) {
-        const { error: upsertErr } = await supabase
-          .from('profiles')
-          .upsert({ id: userId, username: cleanUsername, email, full_name: fullName });
-        if (upsertErr) {
-          console.error('profiles upsert error', upsertErr);
-          throw upsertErr;
-        }
+      
+      // Show welcome message if user got VIB subscription
+      if (result.message.includes('Welcome to Hekayaty Lord')) {
+        // Store welcome message to show in UI
+        localStorage.setItem('welcomeMessage', result.message);
       }
-      return data.user;
+      
+      return result.user;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth','session'] });

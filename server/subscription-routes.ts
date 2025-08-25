@@ -99,6 +99,17 @@ export function registerSubscriptionRoutes(app: Express) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Prevent multiple redemptions of free promo per user
+    const { count: redeemedCount } = await supabase
+      .from("subscription_codes")
+      .select("id", { head: true, count: "exact" })
+      .eq("used_by", user.id)
+      .eq("is_special_2month", true);
+
+    if (redeemedCount && redeemedCount > 0) {
+      return res.status(400).json({ message: "You have already redeemed your free code." });
+    }
+
     // Fetch code row
     const { data, error } = await supabase
       .from("subscription_codes")

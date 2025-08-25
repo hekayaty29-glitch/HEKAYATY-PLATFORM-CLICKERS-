@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { supabaseStorage } from "./supabase-storage";
+import { upload, uploadToCloudinary } from "./upload-routes";
 import { authValidation, storyValidation, userValidation, handleValidationErrors } from "./security-middleware";
 import { checkDatabasePermissions, logDatabaseQueries, auditLog } from "./database-security";
 import { checkAccountLockout, recordFailedLogin, recordSuccessfulLogin, checkSuspiciousIP, recordIPAttempt } from "./auth-security";
@@ -21,6 +22,7 @@ import { registerSubscriptionRoutes } from "./subscription-routes";
 import { registerCommunityRoutes } from "./community-routes";
 import { registerUploadRoutes } from "./upload-routes";
 import { registerHallOfQuillsRoutes } from "./hall-of-quills-routes";
+import { expireVibSubscriptions, getUpcomingExpirations } from "./subscription-expiry";
 import { 
   supabase, 
   verifySupabaseToken, 
@@ -77,6 +79,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Hall of Quills public & admin routes
   registerHallOfQuillsRoutes(app);
 
+  // Subscription expiry management (admin only)
+  app.post("/api/admin/expire-subscriptions", requireAdmin, async (req, res) => {
+    try {
+      const result = await expireVibSubscriptions();
+      res.json(result);
+    } catch (error) {
+      console.error('Error in expire-subscriptions endpoint:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+
+  app.get("/api/admin/upcoming-expirations", requireAdmin, async (req, res) => {
+    try {
+      const daysAhead = parseInt(req.query.days as string) || 7;
+      const result = await getUpcomingExpirations(daysAhead);
+      res.json(result);
+    } catch (error) {
+      console.error('Error in upcoming-expirations endpoint:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+
   // ---------------------------------------------------------------------------
   // Characters API
   // ---------------------------------------------------------------------------
@@ -97,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     image: z.string().url(),
   });
 
-  app.post("/api/characters", requireAdmin, async (req: Request, res: Response) => {
+  app.post("/api/characters", requireAuth, async (req: Request, res: Response) => {
     try {
       const body = insertCharacterSchema.parse(req.body);
       const created = await supabaseStorage.createCharacter(body);
@@ -111,6 +135,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Create character error:", err);
       res.status(500).json({ message: "Failed to create character" });
+    }
+  });
+
+  // Get single character by ID
+  app.get("/api/characters/:id", async (req: Request, res: Response) => {
+    try {
+      const charId = req.params.id;
+      const character = await supabaseStorage.getCharacter(charId);
+      if (!character) {
+        return res.status(404).json({ message: "Character not found" });
+      }
+      res.json(character);
+    } catch (err) {
+      console.error("Get character error:", err);
+      res.status(500).json({ message: "Failed to fetch character" });
+    }
+  });
+
+  // Update character
+  const updateCharacterSchema = insertCharacterSchema.partial();
+  app.put("/api/characters/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const charId = req.params.id;
+      const body = updateCharacterSchema.parse(req.body);
+      const updated = await supabaseStorage.updateCharacter(charId, body);
+      if (!updated) {
+        return res.status(500).json({ message: "Could not update character" });
+      }
+      res.json(updated);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input", errors: err.errors });
+      }
+      console.error("Update character error:", err);
+      res.status(500).json({ message: "Failed to update character" });
+    }
+  });
+
+  // Delete character
+  app.delete("/api/characters/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const charId = req.params.id;
+      const success = await supabaseStorage.deleteCharacter(charId);
+      if (!success) {
+        return res.status(500).json({ message: "Could not delete character" });
+      }
+      res.status(204).send();
+    } catch (err) {
+      console.error("Delete character error:", err);
+      res.status(500).json({ message: "Failed to delete character" });
     }
   });
 
@@ -157,6 +231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
       
+      // Check if registration is before Sept 30, 2025 for automatic VIB subscription
+      const currentDate = new Date();
+      const vibCutoffDate = new Date('2025-09-30T23:59:59Z');
+      const isEligibleForVib = currentDate <= vibCutoffDate;
+      
       // Create profile in profiles table
       const { error: profileError } = await supabase
         .from('profiles')
@@ -167,9 +246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           full_name: fullName,
           avatar_url: '',
           bio: '',
-          is_premium: false,
+          is_premium: isEligibleForVib,
           is_admin: false,
-          role: 'user'
+          role: isEligibleForVib ? 'vip' : 'free',
+          subscription_end_date: isEligibleForVib ? '2025-09-30T23:59:59Z' : null
         });
       
       if (profileError) {
@@ -178,12 +258,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(201).json({ 
-        message: "User created successfully",
+        message: isEligibleForVib ? "Welcome to Hekayaty Lord! You've been granted VIB access until September 30, 2025." : "User created successfully",
         user: {
           id: data.user.id,
           email: data.user.email,
           username: username.toLowerCase(),
-          full_name: fullName
+          full_name: fullName,
+          is_premium: isEligibleForVib,
+          role: isEligibleForVib ? 'vip' : 'free'
         }
       });
     } catch (error) {
@@ -435,6 +517,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comics routes
+  app.get("/api/comics/:id", async (req, res) => {
+    const comicId = req.params.id;
+    if (!comicId) {
+      return res.status(400).json({ message: "Invalid comic ID" });
+    }
+
+    try {
+      const comic = await supabaseStorage.getComic(comicId);
+      if (!comic) {
+        return res.status(404).json({ message: "Comic not found" });
+      }
+
+      // Enrich comic with author data like stories
+      const author = await supabaseStorage.getUser(comic.author_id);
+      
+      res.json({
+        ...comic,
+        author: author ? {
+          id: author.id,
+          username: author.username,
+          fullName: author.full_name,
+          avatarUrl: author.avatar_url,
+          bio: author.bio
+        } : null,
+      });
+    } catch (error) {
+      console.error("Get comic error", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get("/api/comics", async (req, res) => {
     const { authorId, includeDrafts, limit, offset } = req.query as { authorId?: string; includeDrafts?: string; limit?: string; offset?: string };
     try {
@@ -451,30 +564,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DELETE comic route
+  app.delete("/api/comics/:id", requireAuth, async (req: Request, res: Response) => {
+    const comicId = req.params.id;
+    if (!comicId) {
+      return res.status(400).json({ message: "Invalid comic ID" });
+    }
+
+    const comic = await supabaseStorage.getComic(comicId);
+    if (!comic) {
+      return res.status(404).json({ message: "Comic not found" });
+    }
+
+    if (comic.author_id.toString() !== req.user!.id) {
+      return res.status(403).json({ message: "You can only delete your own comics" });
+    }
+
+    const deleted = await supabaseStorage.deleteComic(comicId);
+    if (!deleted) {
+      return res.status(500).json({ message: "Failed to delete comic" });
+    }
+
+    res.json({ message: "Comic deleted successfully" });
+  });
+
   // Story routes
   app.get("/api/stories", async (req, res) => {
     try {
       const authorId = req.query.authorId ? parseInt(req.query.authorId as string, 10) : undefined;
       const genreId = req.query.genreId ? parseInt(req.query.genreId as string, 10) : undefined;
+      const placement = req.query.placement as string;
       const isPremium = req.query.isPremium ? req.query.isPremium === 'true' : undefined;
       const isShortStory = req.query.isShortStory ? req.query.isShortStory === 'true' : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
       
+      console.log('GET /api/stories - Query params:', { placement, authorId, genreId, isPremium, isShortStory, limit, offset });
+      
       const stories = await supabaseStorage.getStories({
         authorId: authorId?.toString(),
         genreId: genreId,
+        placement: placement,
         isPremium,
         isShortStory,
         limit,
         offset
       });
       
+      console.log(`GET /api/stories - Found ${stories.length} stories for placement: ${placement}`);
+      
       // Add rating information to each story
       const storiesWithRatings = await Promise.all(
         stories.map(async (story) => {
-          const averageRating = await supabaseStorage.getAverageRating(story.id);
-          const genres = await supabaseStorage.getStoryGenres(story.id);
+          const averageRating = await supabaseStorage.getAverageRating(story.id.toString());
+          const genres = await supabaseStorage.getStoryGenres(story.id.toString());
           const author = await supabaseStorage.getUser(story.author_id);
           
           // Don't include the full content in list responses
@@ -500,7 +643,378 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create story (author or admin)
+  // Create story with chapters (new wizard endpoint)
+  app.post("/api/stories/create-with-chapters", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('=== STORY CREATION REQUEST ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('User:', req.user);
+
+      const storySchema = z.object({
+        title: z.string().min(1, "Title is required"),
+        description: z.string().min(10, "Description must be at least 10 characters"),
+        coverImage: z.string().url().optional().or(z.literal("")),
+        placement: z.string().optional(),
+        authorName: z.string().min(1, "Author name is required"),
+        genre: z.array(z.string()).min(1, "At least one genre is required"),
+        collaborators: z.array(z.any()).optional(),
+        isPremium: z.boolean().optional(),
+        isPublished: z.boolean().optional()
+      });
+
+      let data;
+      try {
+        data = storySchema.parse(req.body);
+        console.log('Schema validation passed:', data);
+      } catch (validationError) {
+        console.error('Schema validation failed:', validationError);
+        if (validationError instanceof z.ZodError) {
+          return res.status(400).json({ 
+            message: validationError.errors[0].message,
+            errors: validationError.errors
+          });
+        }
+        throw validationError;
+      }
+
+      // Prepare story data for database (using correct column names from schema)
+      const storyData = {
+        title: data.title.trim(),
+        description: data.description.trim(),
+        content: '', // Will be populated by chapters
+        cover_url: data.coverImage && data.coverImage !== "" ? data.coverImage : "",
+        author_id: req.user!.id, // Use correct database column name
+        is_premium: data.isPremium || false, // Use correct database column name
+        is_published: true, // Use correct database column name - set to published when creating through publish wizard
+        is_short_story: false, // Use correct database column name
+        placement: data.placement || null, // Save placement/category
+        genre: data.genre || [] // Save selected genres
+      };
+
+      console.log('Prepared story data for database:', storyData);
+
+      const story = await supabaseStorage.createStory(storyData);
+
+      if (!story) {
+        console.error('Story creation returned null');
+        return res.status(500).json({ message: 'Failed to create story - database returned null' });
+      }
+
+      console.log('Story created successfully:', story);
+      return res.status(201).json({ 
+        storyId: story.id,
+        message: 'Story created successfully'
+      });
+
+    } catch (error: any) {
+      console.error('=== STORY CREATION ERROR ===');
+      console.error('Error type:', error?.constructor?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'Validation error: ' + error.errors[0].message,
+          errors: error.errors
+        });
+      }
+      
+      return res.status(500).json({ 
+        message: 'Internal server error during story creation',
+        error: process.env.NODE_ENV === 'development' ? error?.message : 'Internal server error'
+      });
+    }
+  });
+
+  // Upload chapters for a story (supports text, PDF, audio, and image formats)
+  app.post("/api/stories/:id/chapters", requireAuth, upload.array('chapters', 20), async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      if (!storyId) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+
+      // Verify story ownership
+      const story = await supabaseStorage.getStory(storyId);
+      if (!story || story.author_id !== req.user!.id) {
+        return res.status(403).json({ message: "You can only upload chapters to your own stories" });
+      }
+
+      // Handle multipart file upload using existing multer setup
+      if (!req.files || !Array.isArray(req.files)) {
+        return res.status(400).json({ message: "No chapter files provided" });
+      }
+
+      const chapterNames = req.body.chapterNames || [];
+      const chapterOrders = req.body.chapterOrders || [];
+      
+      const chapters = [];
+      
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        const chapterName = chapterNames[i] || `Chapter ${i + 1}`;
+        const order = parseInt(chapterOrders[i]) || i;
+        
+        // Determine file type and resource type for Cloudinary
+        let fileType: 'pdf' | 'text' | 'audio' | 'image' = 'text';
+        let resourceType: 'auto' | 'image' | 'video' | 'raw' = 'auto';
+        
+        if (file.mimetype === 'application/pdf') {
+          fileType = 'pdf';
+          resourceType = 'raw';
+        } else if (file.mimetype.startsWith('audio/')) {
+          fileType = 'audio';
+          resourceType = 'video'; // Cloudinary uses 'video' for audio files
+        } else if (file.mimetype.startsWith('image/')) {
+          fileType = 'image';
+          resourceType = 'image';
+        }
+        
+        // Upload file to Cloudinary
+        const uploadResult = await uploadToCloudinary(file.buffer, {
+          folder: `novelnexus/chapters/${storyId}`,
+          public_id: `chapter_${storyId}_${order}_${Date.now()}`,
+          resource_type: resourceType
+        });
+        
+        // Store chapter in database
+        const chapter = await supabaseStorage.createChapter({
+          story_id: storyId,
+          title: chapterName,
+          file_url: uploadResult.secure_url,
+          file_type: fileType,
+          chapter_order: order,
+          content: fileType === 'text' ? file.buffer.toString('utf-8') : null
+        });
+        
+        chapters.push(chapter);
+      }
+
+      return res.status(201).json({ chapters });
+    } catch (error) {
+      console.error('Upload chapters error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Publish a story (mark as published with optional scheduling)
+  app.put("/api/stories/:id/publish", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      if (!storyId) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+
+      const { publish_at } = req.body;
+
+      // Verify story ownership
+      const story = await supabaseStorage.getStory(storyId);
+      if (!story || story.author_id !== req.user!.id) {
+        return res.status(403).json({ message: "You can only publish your own stories" });
+      }
+
+      // Validate publish_at if provided
+      if (publish_at && new Date(publish_at) <= new Date()) {
+        return res.status(400).json({ message: "Publish date must be in the future" });
+      }
+
+      const updateData: any = { is_published: true };
+      if (publish_at) {
+        updateData.publish_at = publish_at;
+      }
+
+      const updatedStory = await supabaseStorage.updateStory(storyId, updateData);
+      return res.status(200).json(updatedStory);
+    } catch (error) {
+      console.error('Publish story error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Chapter navigation
+  app.get('/api/stories/:id/chapters', async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      if (!storyId) return res.status(400).json({ message: 'Invalid story ID' });
+      
+      console.log('Fetching chapters for story ID:', storyId);
+      const chapters = await supabaseStorage.getChapters(storyId);
+      console.log('Found chapters:', chapters?.length || 0);
+      console.log('Chapters data:', chapters);
+      
+      return res.json({ chapters });
+    } catch (error) {
+      console.error('Get chapters API error:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  // Get single chapter by order (0-based)
+  app.get('/api/stories/:id/chapters/:order', async (req: Request, res: Response) => {
+    const storyId = req.params.id;
+    const order = parseInt(req.params.order, 10);
+    if (!storyId || isNaN(order)) return res.status(400).json({ message: 'Invalid parameters' });
+    const chapters = await supabaseStorage.getChapters(storyId);
+    const chapter = chapters.find(c => c.order === order);
+    if (!chapter) return res.status(404).json({ message: 'Chapter not found' });
+    return res.json(chapter);
+  });
+
+  app.get('/api/stories/:id/chapters/:order/prev', async (req: Request, res: Response) => {
+    const storyId = req.params.id;
+    const order = parseInt(req.params.order, 10);
+    if (!storyId || isNaN(order)) return res.status(400).json({ message: 'Invalid parameters' });
+    const prev = await supabaseStorage.getAdjacentChapter(storyId, order, 'prev');
+    if (!prev) return res.status(404).json({ message: 'No previous chapter' });
+    return res.json(prev);
+  });
+
+  app.get('/api/stories/:id/chapters/:order/next', async (req: Request, res: Response) => {
+    const storyId = req.params.id;
+    const order = parseInt(req.params.order, 10);
+    if (!storyId || isNaN(order)) return res.status(400).json({ message: 'Invalid parameters' });
+    const next = await supabaseStorage.getAdjacentChapter(storyId, order, 'next');
+    if (!next) return res.status(404).json({ message: 'No next chapter' });
+    return res.json(next);
+  });
+
+  // Get chapter by ID
+  app.get('/api/chapters/:id', async (req: Request, res: Response) => {
+    const chapterId = req.params.id;
+    if (!chapterId) return res.status(400).json({ message: 'Invalid chapter ID' });
+    const chapter = await supabaseStorage.getChapterById(chapterId);
+    return res.json(chapter);
+  });
+
+  // Get next/previous chapter
+  app.get('/api/stories/:id/chapters/:order/:direction', async (req: Request, res: Response) => {
+    const storyId = req.params.id;
+    const order = parseInt(req.params.order, 10);
+    const direction = req.params.direction as 'prev' | 'next';
+    if (!storyId || isNaN(order)) return res.status(400).json({ message: 'Invalid parameters' });
+    const chapter = await supabaseStorage.getAdjacentChapter(storyId, order, direction);
+    if (!chapter) return res.status(404).json({ message: `No ${direction} chapter` });
+    return res.json(chapter);
+  });
+
+  // Collaborator management endpoints
+  app.post('/api/stories/:id/collaborators', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      const { userIds, role = 'co_author' } = req.body;
+
+      if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: 'User IDs array is required' });
+      }
+
+      // Verify story ownership
+      const story = await supabaseStorage.getStory(storyId);
+      if (!story || story.author_id !== req.user!.id) {
+        return res.status(403).json({ message: 'You can only manage collaborators for your own stories' });
+      }
+
+      const success = await supabaseStorage.addCollaborators(storyId, userIds, role);
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to add collaborators' });
+      }
+
+      const collaborators = await supabaseStorage.getCollaborators(storyId);
+      return res.status(201).json({ collaborators });
+    } catch (error) {
+      console.error('Add collaborators error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/stories/:id/collaborators', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      const collaborators = await supabaseStorage.getCollaborators(storyId);
+      return res.json({ collaborators });
+    } catch (error) {
+      console.error('Get collaborators error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/stories/:id/collaborators/:userId', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storyId = req.params.id;
+      const userId = req.params.userId;
+
+      // Verify story ownership
+      const story = await supabaseStorage.getStory(storyId);
+      if (!story || story.author_id !== req.user!.id) {
+        return res.status(403).json({ message: 'You can only manage collaborators for your own stories' });
+      }
+
+      const success = await supabaseStorage.removeCollaborator(storyId, userId);
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to remove collaborator' });
+      }
+
+      return res.status(200).json({ message: 'Collaborator removed successfully' });
+    } catch (error) {
+      console.error('Remove collaborator error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Chapter versioning endpoints
+  app.get('/api/chapters/:id/versions', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const chapterId = parseInt(req.params.id, 10);
+      if (isNaN(chapterId)) {
+        return res.status(400).json({ message: 'Invalid chapter ID' });
+      }
+
+      const versions = await supabaseStorage.getChapterVersions(chapterId);
+      return res.json({ versions });
+    } catch (error) {
+      console.error('Get chapter versions error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/chapters/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const chapterId = req.params.id;
+      if (!chapterId) {
+        return res.status(400).json({ message: 'Invalid chapter ID' });
+      }
+
+      const { title, content, file_url } = req.body;
+
+      // Get chapter to verify story ownership
+      const chapter = await supabaseStorage.getChapterById(chapterId);
+      if (!chapter) {
+        return res.status(404).json({ message: 'Chapter not found' });
+      }
+
+      const story = await supabaseStorage.getStory(chapter.story_id);
+      if (!story || story.author_id !== req.user!.id) {
+        return res.status(403).json({ message: 'You can only edit chapters of your own stories' });
+      }
+
+      const updates: any = {};
+      if (title) updates.title = title;
+      if (content) updates.content = content;
+      if (file_url) updates.file_url = file_url;
+
+      const success = await supabaseStorage.updateChapterWithVersioning(chapterId, updates);
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to update chapter' });
+      }
+
+      const updatedChapter = await supabaseStorage.getChapterById(chapterId);
+      return res.json(updatedChapter);
+    } catch (error) {
+      console.error('Update chapter error', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Create story (author or admin) - original endpoint
   app.post("/api/stories", requireAuth, async (req: Request, res: Response) => {
     try {
       const storySchema = z.object({
@@ -535,10 +1049,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: data.title,
         description: data.description,
         content: data.content,
-        cover_image: data.coverImage,
-        poster_image: data.posterImage,
+        cover_url: data.coverImage,
         author_id: req.user!.id,
-        workshop_id: data.workshopId,
         is_premium: data.isPremium || false,
         is_published: data.isPublished || false,
         is_short_story: data.isShortStory || false
@@ -570,7 +1082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add rating & author details like other list endpoints
       const storiesWithDetails = await Promise.all(
         stories.map(async (story) => {
-          const averageRating = await supabaseStorage.getAverageRating(story.id);
+          const averageRating = await supabaseStorage.getAverageRating(story.id.toString());
           const author = await supabaseStorage.getUser(story.author_id);
 
           const { content, ...storyWithoutContent } = story;
@@ -605,8 +1117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add rating and genre information to each story
       const storiesWithDetails = await Promise.all(
         stories.map(async (story) => {
-          const averageRating = await supabaseStorage.getAverageRating(story.id);
-          const genres = await supabaseStorage.getStoryGenres(story.id);
+          const averageRating = await supabaseStorage.getAverageRating(story.id.toString());
+          const genres = await supabaseStorage.getStoryGenres(story.id.toString());
           const author = await supabaseStorage.getUser(story.author_id);
           
           // Don't include the full content in list responses
@@ -719,10 +1231,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add genre information to each story
       const storiesWithDetails = await Promise.all(
         stories.map(async (story) => {
-          const genres = await supabaseStorage.getStoryGenres(story.id);
-          const ratings = await supabaseStorage.getRatings(story.id);
+          const genres = await supabaseStorage.getStoryGenres(story.id.toString());
+          const ratings = await supabaseStorage.getRatings(story.id.toString());
           const author = await supabaseStorage.getUser(story.author_id);
-          
+          const rating = await supabaseStorage.getRating(req.user!.id.toString(), story.id.toString());
           // Don't include the full content in list responses
           const { content, ...storyWithoutContent } = story;
           
@@ -735,7 +1247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               username: author.username,
               fullName: author.full_name,
               avatarUrl: author.avatar_url
-            } : null
+            } : null,
+            rating
           };
         })
       );
@@ -746,13 +1259,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Comic publish route (admin only)
-  app.post("/api/comics", requireAdmin, async (req: Request, res: Response) => {
+  // ---------------------------------------------------------------------------
+  // Get single TaleCraft project by id
+  // ---------------------------------------------------------------------------
+  app.get("/api/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error || !project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      res.json(project);
+    } catch (err) {
+      console.error('Fetch project error', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // TaleCraft project publish route
+  // ---------------------------------------------------------------------------
+  app.post("/api/projects/publish", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Validate and parse body
+      const data = taleCraftPublishSchema.parse(req.body);
+
+      // Permission checks for non-admin users
+      const isAdmin = !!req.user?.is_admin;
+      if (!isAdmin) {
+        const publicPages = [
+          "adventure",
+          "romance",
+          "scifi",
+          "writers_gems",
+          "epic_comics",
+        ];
+        if (!publicPages.includes(data.page)) {
+          return res.status(403).json({ message: "You are not allowed to publish to this page" });
+        }
+        // Non-admin users can publish to Epic Comics only for comic projects
+        if (data.page === "epic_comics" && data.projectType !== "comic") {
+          return res.status(400).json({ message: "Epic Comics page is only for comic projects" });
+        }
+        // Non-admin stories cannot target hekayaty_original (already prevented by schema options)
+      }
+
+      // Determine content path depending on format
+      const contentPath = data.format === "pdf" ? (req.body.contentPath || data.content) : data.content;
+
+      // Build project record
+      const newProject = {
+        title: data.title,
+        description: data.description,
+        coverImage: data.coverImage || "",
+        projectType: data.projectType,
+        author_id: req.user!.id,
+        genre: data.genre,
+        page: data.page,
+        contentPath,
+        isPublished: true,
+        isApproved: isAdmin, // auto-approved for admins, true by default else pending moderation logic
+        createdAt: new Date().toISOString(),
+      } as any;
+
+      const created = await supabaseStorage.createProject(newProject);
+      if (!created) {
+        return res.status(500).json({ message: "Failed to publish project" });
+      }
+      res.status(201).json({ id: created.id, url: `/projects/${created.id}` });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Publish project error", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Comic publish route
+  app.post("/api/comics", requireAuth, async (req: Request, res: Response) => {
     try {
       const comicSchema = z.object({
         title: z.string().min(1),
         description: z.string().min(10),
-        pdfUrl: z.string().url().optional(),
+        pdfUrl: z.string().min(1),
         coverImage: z.string().url().optional(),
         workshopId: z.string().uuid().optional(),
         isPremium: z.boolean().optional(),
@@ -779,11 +1373,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: data.title,
         description: data.description,
         pdf_url: data.pdfUrl,
-        cover_image: data.coverImage,
-        author_id: req.user!.id, // admin publishing on behalf of themselves
+        cover_url: data.coverImage,
+        author_id: req.user!.id,
         workshop_id: data.workshopId,
         is_premium: data.isPremium || false,
-        is_published: data.isPublished || false
+        is_published: data.isPublished || false,
+        genre: []
       });
 
       return res.status(201).json(comic);
@@ -798,9 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Story routes
 
-app.get("/api/stories/:id", async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+  app.get("/api/stories/:id", async (req, res) => {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -825,7 +1420,7 @@ app.get("/api/stories/:id", async (req, res) => {
     // Check for user bookmark if logged in
     let isBookmarked = false;
     if (req.user?.id) {
-      const bookmark = await supabaseStorage.getBookmark(req.user.id, storyId);
+      const bookmark = await supabaseStorage.getBookmark(req.params.id, req.user!.id.toString());
       isBookmarked = !!bookmark;
     }
     
@@ -847,8 +1442,8 @@ app.get("/api/stories/:id", async (req, res) => {
   });
 
   app.put("/api/stories/:id", requireAuth, async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -890,8 +1485,8 @@ app.get("/api/stories/:id", async (req, res) => {
   });
 
   app.delete("/api/stories/:id", requireAuth, async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -917,8 +1512,8 @@ app.get("/api/stories/:id", async (req, res) => {
   // Story download counter
   // ---------------------------------------------------------------------------
   app.post("/api/stories/:id/download", async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
 
@@ -971,8 +1566,8 @@ app.get("/api/stories/:id", async (req, res) => {
 
   // Rating routes
   app.post("/api/stories/:id/rate", requireAuth, async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -989,20 +1584,20 @@ app.get("/api/stories/:id", async (req, res) => {
       });
       
       // Check if user already rated
-      const existingRating = await supabaseStorage.getRating(data.userId.toString(), data.storyId);
+      const existingRating = await supabaseStorage.getRating(data.userId, data.storyId);
       
       let rating;
       if (existingRating) {
         rating = await supabaseStorage.updateRating(existingRating.id, {
           rating: data.rating,
-          review: data.review
+          review: data.review || ''
         });
       } else {
         rating = await supabaseStorage.createRating({
-          user_id: data.userId.toString(),
+          user_id: data.userId,
           story_id: data.storyId,
           rating: data.rating,
-          review: data.review || undefined
+          review: data.review || ''
         });
       }
       
@@ -1021,8 +1616,8 @@ app.get("/api/stories/:id", async (req, res) => {
   });
 
   app.get("/api/stories/:id/ratings", async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -1053,8 +1648,8 @@ app.get("/api/stories/:id", async (req, res) => {
 
   // Originals public endpoint
   app.get("/api/originals/:id", async (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) {
+    const id = req.params.id;
+    if (!id) {
       return res.status(400).json({ message: "Invalid id" });
     }
 
@@ -1070,7 +1665,7 @@ app.get("/api/stories/:id", async (req, res) => {
       const dto = {
         id: story.id,
         title: story.title,
-        posterUrl: story.cover_image || "",
+        posterUrl: story.cover_url || "",
         description: story.description,
         soundtrackUrl: undefined,
         characters: [],
@@ -1425,11 +2020,9 @@ app.get("/api/stories/:id", async (req, res) => {
         const newStory = await supabaseStorage.createStory({
           title: data.title,
           description: data.description,
-          content: data.content,
-          cover_image: data.coverImage || undefined,
-          poster_image: undefined,
+          content: data.content || "",
+          cover_url: data.coverImage || undefined,
           author_id: req.user!.id,
-          workshop_id: undefined,
           is_premium: data.isPremium,
           is_published: true,
           is_short_story: false,
@@ -1444,12 +2037,12 @@ app.get("/api/stories/:id", async (req, res) => {
         const newComic = await supabaseStorage.createComic({
           title: data.title,
           description: data.description,
-          cover_image: data.coverImage || undefined,
+          cover_url: data.coverImage || undefined,
           pdf_url: data.format === "pdf" ? data.content : undefined,
           author_id: req.user!.id,
           workshop_id: undefined,
           is_premium: data.isPremium,
-          is_published: true,
+          isPublished: true,
         } as any);
 
         if (!newComic) {
@@ -1470,8 +2063,8 @@ app.get("/api/stories/:id", async (req, res) => {
 
   // Bookmark routes
   app.post("/api/stories/:id/bookmark", requireAuth, async (req, res) => {
-    const storyId = parseInt(req.params.id, 10);
-    if (isNaN(storyId)) {
+    const storyId = req.params.id;
+    if (!storyId) {
       return res.status(400).json({ message: "Invalid story ID" });
     }
     
@@ -1526,8 +2119,8 @@ app.get("/api/stories/:id", async (req, res) => {
       // Add rating and genre information to each story
       const storiesWithDetails = await Promise.all(
         stories.map(async (story) => {
-          const averageRating = await supabaseStorage.getAverageRating(story.id);
-          const genres = await supabaseStorage.getStoryGenres(story.id);
+          const averageRating = await supabaseStorage.getAverageRating(story.id.toString());
+          const genres = await supabaseStorage.getStoryGenres(story.id.toString());
           const author = await supabaseStorage.getUser(story.author_id);
           
           // Don't include the full content in list responses

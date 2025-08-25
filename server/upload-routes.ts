@@ -3,7 +3,7 @@ import multer from "multer";
 import cloudinary from "./cloudinary";
 import { requireAuth } from "./supabase-auth";
 import { supabaseStorage } from "./supabase-storage";
-import { secureFileUpload, uploadRateLimit, handleValidationErrors } from "./security-middleware";
+import { secureFileUpload, handleValidationErrors } from "./security-middleware";
 import { body } from "express-validator";
 
 // Configure multer for memory storage (files will be uploaded to Cloudinary)
@@ -84,11 +84,13 @@ const uploadToCloudinary = async (
   });
 };
 
+// Export upload middleware and helper function for use in other routes
+export { upload, uploadToCloudinary };
+
 export function registerUploadRoutes(app: Express) {
   
   // Upload user avatar
   app.post("/api/upload/avatar", 
-    uploadRateLimit,
     requireAuth, 
     upload.single('avatar'), 
     secureFileUpload,
@@ -131,7 +133,6 @@ export function registerUploadRoutes(app: Express) {
 
   // Upload story cover image
   app.post("/api/upload/story-cover", 
-    uploadRateLimit,
     requireAuth, 
     upload.single('cover'), 
     secureFileUpload,
@@ -310,7 +311,7 @@ export function registerUploadRoutes(app: Express) {
   // No rate limiting for comic/story editor uploads
   app.post("/api/upload/file",
     requireAuth, 
-    upload.single('file'), 
+    upload.single('file'),
     secureFileUpload,
     [
       body('folder')

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { attemptDownload } from "@/lib/downloadGate";
+import { PublishProjectDialog } from "./PublishProjectDialog";
 import { useRoles } from "@/hooks/useRoles";
 import { supabase } from "@/lib/supabase";
 import { uploadComicImage } from "@/lib/fastUpload";
@@ -152,15 +153,20 @@ const PANEL_LAYOUTS = [
 interface ComicEditorProps {
   project: ComicProject;
   onProjectUpdate: (project: ComicProject) => void;
+  onPublish: () => void;
 }
 
-export default function ComicEditor({ project, onProjectUpdate }: ComicEditorProps) {
+export default function ComicEditor({ project, onProjectUpdate, onPublish }: ComicEditorProps) {
   const roles = useRoles();
 
   // Ensure we have at least one page
   const [selectedPageId, setSelectedPageId] = useState(() => {
+    return project.pages.length > 0 ? project.pages[0].id : '';
+  });
+
+  // Create default page if needed (in useEffect to avoid setState during render)
+  useEffect(() => {
     if (project.pages.length === 0) {
-      // Create a default page if none exists
       const defaultPage: ComicPage = {
         id: crypto.randomUUID(),
         title: 'Page 1',
@@ -172,10 +178,9 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
         pages: [defaultPage],
         lastModified: new Date()
       });
-      return defaultPage.id;
+      setSelectedPageId(defaultPage.id);
     }
-    return project.pages[0].id;
-  });
+  }, [project.pages.length, project, onProjectUpdate]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [tool, setTool] = useState<'select' | 'text' | 'image' | 'panel' | 'bubble'>('select');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; panelId: string } | null>(null);
@@ -248,14 +253,22 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
   };
 
   const updatePage = (pageId: string, updates: Partial<ComicPage>) => {
+    console.log('updatePage called with:', pageId, updates);
     const updatedPages = project.pages.map(page => 
       page.id === pageId ? { ...page, ...updates } : page
     );
+    console.log('Updated pages:', updatedPages);
     updateProject({ pages: updatedPages });
+    console.log('Project updated');
   };
 
   const addElement = (type: ComicElement['type'], x: number = 100, y: number = 100, width?: number, height?: number) => {
-    if (!selectedPage) return;
+    if (!selectedPage) {
+      console.log('No selected page available');
+      return;
+    }
+
+    console.log(`Adding ${type} element at position (${x}, ${y})`);
 
     const defaultWidth = type === 'text' ? 200 : type === 'bubble' ? 150 : type === 'panel' ? 300 : 100;
     const defaultHeight = type === 'text' ? 50 : type === 'bubble' ? 80 : type === 'panel' ? 200 : 100;
@@ -280,9 +293,17 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
       tailY: type === 'bubble' ? (height || defaultHeight) : undefined
     };
 
+    console.log('Created new element:', newElement);
+    console.log('Current page elements before update:', selectedPage.elements.length);
+
+    const updatedElements = [...selectedPage.elements, newElement];
+    console.log('Updated elements array:', updatedElements.length);
+
     updatePage(selectedPage.id, {
-      elements: [...selectedPage.elements, newElement]
+      elements: updatedElements
     });
+    
+    console.log('Page updated, setting selected element ID:', newElement.id);
     setSelectedElementId(newElement.id);
   };
 
@@ -704,8 +725,27 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
     attemptDownload(() => link.click(), roles);
   };
 
+  // Publish dialog state
+  const [publishOpen, setPublishOpen] = useState(false);
+
+  const handlePublished = (id: string) => {
+    alert("Project published! ID: " + id);
+  };
+
   return (
-    <div className="flex h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
+    <>
+      <PublishProjectDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        defaultValues={{
+          title: project.title,
+          description: "",
+          projectType: "comic",
+          content: project,
+        }}
+        onPublished={handlePublished}
+      />
+      <div className="flex h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
       {/* Sidebar */}
       <aside className="w-80 border-r border-gray-700 bg-gray-900/50 flex flex-col">
         <div className="p-4 border-b border-gray-700">
@@ -953,6 +993,9 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
+              <Button variant="default" size="sm" onClick={() => setPublishOpen(true)}>
+                Publish
+              </Button>
             </div>
           </div>
         </div>
@@ -961,34 +1004,46 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
           {selectedPage && (
             <div
               ref={canvasRef}
-              className="relative mx-auto bg-white shadow-lg"
+              className="relative mx-auto bg-white rounded-lg shadow-lg overflow-hidden"
               style={{
                 width: '800px', 
                 height: '1100px', 
-                backgroundColor: selectedPage.backgroundColor || '#ffffff',
-                cursor: tool !== 'select' ? 'crosshair' : 'default',
-                border: '2px solid #e5e7eb',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                transform: `scale(1)`,
+                transformOrigin: 'top left'
               }}
               onClick={handleCanvasClick}
+              onContextMenu={handleCanvasClick}
+              data-page={project.pages?.indexOf(selectedPage) || 0}
             >
+              {/* Grid overlay */}
+              {false && (
+                <div
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(to right, #ccc 1px, transparent 1px),
+                      linear-gradient(to bottom, #ccc 1px, transparent 1px)
+                    `,
+                    backgroundSize: '20px 20px'
+                  }}
+                />
+              )}
+              
+              {/* Elements */}
               {selectedPage.elements
                 .sort((a, b) => a.zIndex - b.zIndex)
                 .map((element) => (
                   <div
                     key={element.id}
                     className={clsx(
-                      "absolute border-2 cursor-pointer group",
-                      selectedElementId === element.id ? "border-blue-500" : "border-transparent hover:border-gray-400"
+                      "absolute cursor-move border-2",
+                      selectedElementId === element.id ? "border-blue-500" : "border-transparent"
                     )}
                     style={{
                       left: element.x,
                       top: element.y,
                       width: element.width,
                       height: element.height,
-                      backgroundColor: element.backgroundColor,
-                      borderColor: selectedElementId === element.id ? '#3b82f6' : element.borderColor,
-                      borderWidth: selectedElementId === element.id ? 2 : element.borderWidth,
                       transform: `rotate(${element.rotation || 0}deg)`,
                       zIndex: element.zIndex
                     }}
@@ -1160,5 +1215,6 @@ export default function ComicEditor({ project, onProjectUpdate }: ComicEditorPro
         </div>
       </main>
     </div>
+  </>
   );
 }

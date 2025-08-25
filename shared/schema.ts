@@ -43,17 +43,32 @@ export const storyGenres = pgTable("storyGenres", {
 
 export const ratings = pgTable("ratings", {
   id: serial("id").primaryKey(),
-  userId: integer("userId").notNull(),
-  storyId: integer("storyId").notNull(),
+  userId: text("userId").notNull(),
+  storyId: text("storyId").notNull(),
   rating: integer("rating").notNull(),
   review: text("review").default(""),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  coverImage: text("coverImage").default(""),
+  projectType: text("projectType").$type<"story" | "comic">().notNull(),
+  authorId: integer("authorId").notNull(),
+  genre: text("genre").notNull(),
+  page: text("page").notNull(),
+  contentPath: text("contentPath").notNull(),
+  isPublished: boolean("isPublished").default(false),
+  isApproved: boolean("isApproved").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
-  userId: integer("userId").notNull(),
-  storyId: integer("storyId").notNull(),
+  userId: text("userId").notNull(),
+  storyId: text("storyId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -64,6 +79,7 @@ export const insertGenreSchema = createInsertSchema(genres).omit({ id: true });
 export const insertStoryGenreSchema = createInsertSchema(storyGenres);
 export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
 export const insertBookmarkSchema = createInsertSchema(bookmarks).omit({ id: true, createdAt: true });
+export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, isPublished: true, isApproved: true, createdAt: true });
 
 // Select Types
 export type User = typeof users.$inferSelect;
@@ -80,6 +96,8 @@ export type InsertGenre = z.infer<typeof insertGenreSchema>;
 export type InsertStoryGenre = z.infer<typeof insertStoryGenreSchema>;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
 export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
 
 // Extended schemas for auth
 export const loginSchema = z.object({
@@ -115,7 +133,9 @@ export const taleCraftPublishSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   authorName: z.string().min(1, "Author name is required"),
-  content: z.string().min(100, "Content must be at least 100 characters"),
+  // If format is html then content (html string) is required; if pdf then contentPath (url) is required
+  content: z.string().optional(),
+  contentPath: z.string().url().optional(),
   coverImage: z.string().optional(),
   genre: z.enum(["adventure", "romance", "scifi", "writers_gems", "hekayaty_original"]),
   projectType: z.enum(["story", "comic"]),

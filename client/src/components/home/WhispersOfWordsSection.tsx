@@ -3,14 +3,8 @@ import bgImg from "@/assets/63b76a44-095a-4fae-997f-ed1c910c07c1.png";
 import { useState } from "react";
 import { Link } from "wouter";
 
-// Temporary showcase data – in a real app this would come from an API
-const showcase = [
-  { id: 1, title: "Kingdoms of Ashes", genre: "Fantasy", cover: "🗡️" },
-  { id: 102, title: "Clockwork Hearts", genre: "Steampunk", cover: "🕰️" },
-  { id: 103, title: "Nebula Dreams", genre: "Sci-Fi", cover: "🚀" },
-  { id: 104, title: "Rosewood Secrets", genre: "Romance", cover: "🌹" },
-  { id: 105, title: "Shadows of Kyoto", genre: "Historical", cover: "🏯" },
-];
+// No fake data - will be populated with real content
+const showcase: any[] = [];
 
 export default function WhispersOfWordsSection() {
   const [query, setQuery] = useState("");

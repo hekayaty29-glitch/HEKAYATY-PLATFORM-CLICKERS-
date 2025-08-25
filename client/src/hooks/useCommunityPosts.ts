@@ -26,7 +26,16 @@ export function useCommunityPosts() {
   return useQuery({
     queryKey: ["community", "posts"],
     queryFn: async () => {
-      const res = await fetch("/api/community/posts");
+      // Get auth token from Supabase
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
+      const res = await fetch("/api/community/posts", { headers });
       if (!res.ok) throw new Error("Failed to load posts");
       return res.json();
     },
@@ -38,9 +47,18 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { title: string; body: string; tags: string[] }) => {
+      // Get auth token from Supabase
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
       const res = await fetch("/api/community/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to create post");
@@ -57,9 +75,18 @@ export function useLikePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (postId: string) => {
+      // Get auth token from Supabase
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
       const res = await fetch(`/api/community/posts/${postId}/like`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
       });
       if (!res.ok) throw new Error("Failed to toggle like");
       return res.json();
@@ -75,7 +102,16 @@ export function usePostComments(postId: string) {
   return useQuery({
     queryKey: ["community", "posts", postId, "comments"],
     queryFn: async () => {
-      const res = await fetch(`/api/community/posts/${postId}/comments`);
+      // Get auth token from Supabase
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
+      const res = await fetch(`/api/community/posts/${postId}/comments`, { headers });
       if (!res.ok) throw new Error("Failed to load comments");
       return res.json();
     },
@@ -88,9 +124,18 @@ export function useAddComment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      // Get auth token from Supabase
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
       const res = await fetch(`/api/community/posts/${postId}/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ content }),
       });
       if (!res.ok) throw new Error("Failed to add comment");

@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import StoryCard from "@/components/story/StoryCard";
 import { StoryCard as StoryCardType, Genre } from "@/lib/types";
+import ComicCard from "@/components/comic/ComicCard";
 import { Search, SlidersHorizontal, FilterX, BookOpen, Award, Bookmark, AlertTriangle } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { useAuth } from "@/lib/auth";
@@ -64,6 +65,12 @@ export default function BrowseStoriesPage() {
           : "/api/stories"
     ],
     enabled: !isBookmarks || isAuthenticated,
+  });
+
+  // Fetch comics if not bookmarks/top-rated
+  const { data: comics, isLoading: isLoadingComics } = useQuery<any[]>({
+    queryKey: ["/api/comics"],
+    enabled: !isTopRated && !isBookmarks,
   });
   
   // Update page title and description based on mode
@@ -292,6 +299,28 @@ export default function BrowseStoriesPage() {
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Comics section */}
+          {!isTopRated && !isBookmarks && (
+            <>
+              <h2 className="font-cinzel text-2xl font-bold text-white mt-16 mb-6">Comics</h2>
+              {isLoadingComics ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {Array(6).fill(0).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-white rounded-lg h-80"></div>
+                  ))}
+                </div>
+              ) : comics && comics.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {comics.map((comic) => (
+                    <ComicCard key={comic.id} comic={{ id: comic.id, title: comic.title, cover: comic.cover_image || comic.pdf_url }} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-white/80">No comics found.</p>
+              )}
+            </>
           )}
         </Container>
       </div>

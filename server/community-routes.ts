@@ -28,6 +28,78 @@ export function registerCommunityRoutes(app: Express) {
     }
   });
 
+  // Create workshop
+  app.post("/api/community/workshops", requireAuth, async (req: Request, res: Response) => {
+    try {
+      console.log('🔧 Workshop creation started');
+      console.log('📝 Request body:', req.body);
+      
+      const schema = z.object({
+        name: z.string().min(1).max(255),
+        description: z.string().min(1).max(1000),
+      });
+
+      const { name, description } = schema.parse(req.body);
+      const userId = getCurrentUser(req);
+      
+      console.log('👤 User ID:', userId);
+      console.log('📋 Workshop data:', { name, description });
+
+      if (!userId) {
+        console.log('❌ User not authenticated');
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      console.log('💾 Attempting to insert workshop into database...');
+      
+      // Use the correct column names for the workshops table
+      const now = new Date();
+      const defaultEndTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours from now
+      
+      let insertData: any = {
+        title: name,  // workshops table requires title column
+        name: name,   // workshops table also requires name column
+        description,
+        creator_id: userId,
+        is_active: true,
+        starts_at: now.toISOString(), // Required field - set to current time as default
+        ends_at: defaultEndTime.toISOString(), // Required field - set to 2 hours from start
+        created_at: now.toISOString()
+      };
+
+      console.log('✅ Using title and creator_id columns');
+
+      console.log('📊 Final insert data:', insertData);
+
+      const { data, error } = await supabase
+        .from('workshops')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.log('💥 Database error:', error);
+        console.log('🔍 Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
+      
+      console.log('✅ Workshop created successfully:', data);
+      res.json(data);
+    } catch (error) {
+      console.error('🚨 Workshop creation failed:', error);
+      if (error instanceof z.ZodError) {
+        console.log('📝 Validation errors:', error.errors);
+        return res.status(400).json({ message: 'Validation failed', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create workshop' });
+    }
+  });
+
   // List posts
   app.get("/api/community/posts", async (_req: Request, res: Response) => {
     try {

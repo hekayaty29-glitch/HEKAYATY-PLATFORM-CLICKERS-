@@ -87,7 +87,7 @@ export const verifyToken = (token: string): Promise<any> => {
     jwt.verify(token, JWT_SECRET, {
       issuer: 'novelnexus',
       audience: 'novelnexus-users'
-    }, (err, decoded) => {
+    }, (err: jwt.VerifyErrors | null, decoded: unknown) => {
       if (err) {
         reject(err);
       } else {
@@ -147,7 +147,8 @@ export const generateSecureSessionId = (): string => {
 
 // Two-factor authentication helpers
 export const generateTOTPSecret = (): string => {
-  return crypto.randomBytes(20).toString('base32');
+  // crypto.toString does not support 'base32'; use hex for secret
+  return crypto.randomBytes(20).toString('hex');
 };
 
 export const generateBackupCodes = (): string[] => {
@@ -173,7 +174,7 @@ export const generatePasswordResetToken = (email: string): string => {
 // Secure middleware for sensitive operations
 export const requireRecentAuth = (maxAge: number = 30 * 60 * 1000) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authTime = req.session?.authTime;
+    const authTime = (req as any).session?.authTime;
     
     if (!authTime || Date.now() - authTime > maxAge) {
       return res.status(401).json({ 
@@ -191,6 +192,11 @@ const suspiciousIPs = new Set<string>();
 const ipAttempts = new Map<string, { attempts: number; lastAttempt: number }>();
 
 export const checkSuspiciousIP = (ip: string): boolean => {
+  // Skip suspicious IP checks for localhost/development
+  if (ip === "127.0.0.1" || ip === "::1" || ip.startsWith("::ffff:127.0.0.1") || process.env.NODE_ENV !== "production") {
+    return false;
+  }
+  
   if (suspiciousIPs.has(ip)) {
     return true;
   }

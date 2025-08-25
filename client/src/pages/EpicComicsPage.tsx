@@ -8,6 +8,7 @@ import { Link, useLocation } from "wouter";
 import { PlayCircle } from "lucide-react";
 import bg from "@/assets/364329bc-77bb-4a42-a9b8-df1e9e77b1b3.png";
 import { Helmet } from "react-helmet";
+import EpicComicsStories from "@/components/common/EpicComicsStories";
 
 export default function EpicComicsPage() {
   const { comics, addComic, updateComic, deleteComic } = useFeaturedComics();
@@ -48,14 +49,14 @@ export default function EpicComicsPage() {
           Where imagination meets ink.
         </p>
         <div className="flex gap-4 mt-4 flex-wrap justify-center">
-          <Link href="/comics">
-            <button className="px-6 py-3 rounded-full bg-pink-600 hover:bg-pink-700 text-white font-semibold shadow-md">
-              Explore Comics
-            </button>
-          </Link>
-          <Link href="/tale-craft">
+          <Link href="/talecraft">
             <button className="px-6 py-3 rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md flex items-center gap-2">
               <PlayCircle size={20} /> Create Your Own
+            </button>
+          </Link>
+          <Link href="/publish-comic">
+            <button className="px-6 py-3 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md flex items-center gap-2">
+              <PlusCircle size={20} /> Publish Comic
             </button>
           </Link>
         </div>
@@ -78,7 +79,7 @@ export default function EpicComicsPage() {
         <h2 className="font-bangers text-4xl md:text-5xl text-center mb-10 text-purple-700 dark:text-amber-400">Featured Comics</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filtered.map((comic: any, i: number) => (
-            <motion.div key={comic.id} whileHover={{ scale: 1.05 }} onClick={() => navigate(`/comics/${comic.id}`)} className="relative group rounded-xl overflow-hidden shadow-lg cursor-pointer">
+            <motion.div key={comic.id} whileHover={{ scale: 1.05 }} onClick={() => navigate(`/story/${comic.id}`)} className="relative group rounded-xl overflow-hidden shadow-lg cursor-pointer">
               <img src={comic.cover} alt={comic.title} className="h-72 w-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-4">
                 {isAdmin && (
@@ -99,6 +100,9 @@ export default function EpicComicsPage() {
             </motion.div>
           ))}
         </div>
+        
+        {/* Published Stories in Epic Comics */}
+        <EpicComicsStories />
       </section>
 
       {/* Genres */}

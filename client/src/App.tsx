@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AdsBanner from "@/components/AdsBanner";
-import DownloadLimitBanner from "@/components/DownloadLimitBanner";
 import { FlagsProvider, useFlag } from "@/lib/flags";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "./lib/auth";
@@ -14,6 +13,7 @@ import { AdminDataProvider } from "@/context/AdminDataContext";
 import { AdminAPIProvider } from "@/context/AdminAPIContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import PublishFAB from "@/components/layout/PublishFAB";
 import HekyChat from "@/components/chat/HekyChat";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
@@ -24,19 +24,21 @@ import AuthorProfilePage from "@/pages/AuthorProfilePage";
 import ArtGalleryPage from "@/pages/ArtGalleryPage";
 import StoryPage from "@/pages/StoryPage";
 import PublishStoryPage from "@/pages/PublishStoryPage";
-import PublishComicPage from "@/pages/PublishComicPage";
+import PublishStoryWizardPage from "@/pages/PublishStoryWizardPage";
+import PublishComicWizardPage from "@/pages/PublishComicWizardPage";
 import WorkspacePage from "@/pages/WorkspacePage";
 import GenrePage from "@/pages/GenrePage";
 import GenreStoriesPage from "@/pages/GenreStoriesPage";
 import NewUserProfilePage from "@/pages/NewUserProfilePage";
 import BrowseStoriesPage from "@/pages/BrowseStoriesPage";
 import CommunityPage from "@/pages/CommunityPage";
+import ClubDetailPage from "@/pages/ClubDetailPage";
+import WorkshopDetailPage from "@/pages/WorkshopDetailPage";
 import HekayatyOriginalStoriesPage from "@/pages/HekayatyOriginalStoriesPage";
 import OriginalStoryWorldPage from "@/pages/OriginalStoryWorldPage";
 import OriginalChaptersPage from "@/pages/OriginalChaptersPage";
 import OriginalReadingPage from "@/pages/OriginalReadingPage";
 import SpecialStoriesPage from "@/pages/SpecialStoriesPage";
-import TaleCraftPage from "@/pages/TaleCraftPage";
 import TaleCraftEditorPage from "@/pages/TaleCraftEditorPage";
 import TalesCraftPage from "@/pages/TalesCraftPage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
@@ -50,7 +52,7 @@ import CommunityNewsPage from "@/pages/admin/CommunityNewsPage";
 import MainNewsPage from "@/pages/admin/MainNewsPage";
 import WritersGemsPage from "@/pages/WritersGemsPage";
 import MeetLegendsPage from "@/pages/MeetLegendsPage";
-
+import HallOfQuillsPage from "@/pages/HallOfQuillsPage";
 import TalesProphetsPage from "@/pages/TalesProphetsPage";
 import CharactersPage from "@/pages/CharactersPage";
 import CharacterDetailPage from "@/pages/CharacterDetailPage";
@@ -79,12 +81,16 @@ import CommunityGuidelinesPage from "@/pages/CommunityGuidelinesPage";
 import ComicsLandPage from "@/pages/ComicsLandPage";
 import EpicComicsPage from "@/pages/EpicComicsPage";
 import ComicPage from "@/pages/ComicPage";
+import ProjectReaderPage from "@/pages/ProjectReaderPage";
 import ContactUsPage from "@/pages/ContactUsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import FAQPage from "@/pages/FAQPage";
 import StoryManagerPage from "@/pages/admin/StoryManagerPage";
 import StoryCreatePage from "@/pages/admin/StoryCreatePage";
 import StoryEditPage from "@/pages/admin/StoryEditPage";
+import StoryChaptersPage from "@/pages/StoryChaptersPage";
+import ChapterReaderPage from "@/pages/ChapterReaderPage";
+import CharacterCreatePage from "@/pages/CharacterCreatePage";
 
 function GuardedRoute({ flag, component: Component }: {flag: string; component: any}) {
   const enabled = useFlag(flag);
@@ -104,9 +110,13 @@ function Router() {
             <Route path="/author/:id" component={AuthorProfilePage} />
       {/* Specific routes first */}
 {/* General routes */}
+      <Route path="/projects/:id" component={ProjectReaderPage} />
       <Route path="/story/:id" component={StoryPage} />
-      <Route path="/publish" component={PublishStoryPage} />
-      <Route path="/publish-comic" component={PublishComicPage} />
+      <Route path="/story/:storyId/chapters" component={StoryChaptersPage} />
+      <Route path="/story/:storyId/chapter/:chapterId" component={ChapterReaderPage} />
+      <Route path="/publish" component={PublishStoryWizardPage} />
+      <Route path="/publish-old" component={PublishStoryPage} />
+      <Route path="/publish-comic" component={PublishComicWizardPage} />
       <Route path="/workspace" component={() => <GuardedRoute flag="workspace" component={WorkspacePage} />} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/genres/:id" component={GenreStoriesPage} />
@@ -115,7 +125,9 @@ function Router() {
       <Route path="/search" component={SearchPage} />
       <Route path="/top-rated" component={BrowseStoriesPage} />
       <Route path="/bookmarks" component={BrowseStoriesPage} />
-      <Route path="/community" component={CommunityPage} />
+        <Route path="/community" component={CommunityPage} />
+        <Route path="/clubs/:id" component={ClubDetailPage} />
+        <Route path="/workshops/:id" component={WorkshopDetailPage} />
       <Route path="/gallery" component={ArtGalleryPage} />
       <Route path="/notifications" component={NotificationsPage} />
       <Route path="/originals" component={HekayatyOriginalStoriesPage} />
@@ -126,6 +138,7 @@ function Router() {
       <Route path="/clubs/:id" component={ClubPage} />
       <Route path="/workshops/:id" component={WorkshopPage} />
       <Route path="/special" component={SpecialStoriesPage} />
+      <Route path="/talecraft/editor" component={TaleCraftEditorPage} />
       <Route path="/talecraft" component={TalesCraftPage} />
       <Route path="/gems" component={WritersGemsPage} />
       <Route path="/whispers" component={WhispersOfWordsPage} />
@@ -155,11 +168,12 @@ function Router() {
         <Route path="/stories/new" component={StoryCreatePage} />
         <Route path="/stories/:id/edit" component={StoryEditPage} />
       </Route>
-<Route path="/characters/:id" component={CharacterDetailPage} />
+<Route path="/characters/new" component={CharacterCreatePage} />
+      <Route path="/characters/:id" component={CharacterDetailPage} />
       <Route path="/characters" component={CharactersPage} />
       <Route path="/tales-of-prophets" component={TalesProphetsPage} />
       <Route path="/tales" component={TalesProphetsPage} />
-      <Route path="/hall-of-quills" component={HallOfQuillsAdminPage} />
+      <Route path="/hall-of-quills" component={HallOfQuillsPage} />
       <Route path="/legends" component={MeetLegendsPage} />
       <Route path="/news" component={HekayatyNewsPage} />
       <Route path="/terms" component={TermsOfUsePage} />
@@ -176,7 +190,6 @@ function Router() {
       <Route path="/contact" component={ContactUsPage} />
       <Route path="/faq" component={FAQPage} />
       <Route path="/epic-comics" component={EpicComicsPage} />
-      <Route path="/comics/:id" component={ComicPage} />
       <Route path="/comics" component={ComicsLandPage} />
       <Route component={NotFound} />
     </Switch>
@@ -197,11 +210,11 @@ function App() {
                   <div className="flex flex-col min-h-screen bg-[#151008]">
                     <Header />
         <AdsBanner />
-                    <DownloadLimitBanner />
                     <main className="flex-grow">
                       <Router />
                     </main>
                     <Footer />
+                    <PublishFAB />
                     <HekyChat />
                     <Toaster />
                   </div>

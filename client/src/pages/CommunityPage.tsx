@@ -54,6 +54,10 @@ import { useWorkshops, useJoinWorkshop, useAddWorkshop } from '@/hooks/useWorksh
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { ClubCreationModal } from '@/components/community/ClubCreationModal';
+import { WorkshopCreationModal } from '@/components/community/WorkshopCreationModal';
+import { ClubCard } from '@/components/community/ClubCard';
+import { WorkshopCard } from '@/components/community/WorkshopCard';
 
 // Comments component for individual discussions
 const DiscussionComments: React.FC<{ discussionId: string }> = ({ discussionId }) => {
@@ -140,8 +144,6 @@ const CommunityPage: React.FC = () => {
   const [, setLocation] = useLocation();
   const [clubModalOpen, setClubModalOpen] = useState(false);
   const [workshopModalOpen, setWorkshopModalOpen] = useState(false);
-  const [newWorkshop, setNewWorkshop] = useState({ name: '', description: '' });
-  const [newClub, setNewClub] = useState({ name: '', description: '' });
   // Mock data and state management
   const [activeTab, setActiveTab] = useState('discussions');
   const { user } = useAuth();
@@ -222,12 +224,18 @@ const CommunityPage: React.FC = () => {
     { id: 4, title: 'Starlit Path', artist: 'CelestialArt', likes: 298, image: '✨' },
   ]);
 
+  const [newArt, setNewArt] = useState<{ title: string; artist: string; file: File | null }>({
+    title: '',
+    artist: '',
+    file: null,
+  });
+
   const likeArt = (id: number) =>
     setGallery((prev) => prev.map((a) => (a.id === id ? { ...a, likes: a.likes + 1 } : a)));
 
   const uploadInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const handleUploadArt = async (file: File) => {
+  const handleUploadArt = async (file: File, title: string, artist: string) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
@@ -245,8 +253,8 @@ const CommunityPage: React.FC = () => {
       
       const newArt: ArtItem = {
         id: gallery.length + 1,
-        title: file.name,
-        artist: 'You',
+        title,
+        artist,
         likes: 0,
         image: null,
         imageUrl: json.url,
@@ -292,15 +300,36 @@ const CommunityPage: React.FC = () => {
     setGallery((prev) => prev.filter((a) => a.id !== id));
 
   const handleCreateDiscussion = () => {
-    if (!newDiscussion.title.trim() || !newDiscussion.content.trim()) return;
+    if (!user) {
+      alert('Please sign in to create posts');
+      return;
+    }
+    
+    if (!newDiscussion.title.trim() || !newDiscussion.content.trim()) {
+      alert('Please fill in both title and content fields');
+      return;
+    }
+    
+    console.log('Creating discussion:', newDiscussion);
     
     createPost.mutate({
       title: newDiscussion.title,
       body: newDiscussion.content,
       tags: newDiscussion.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+    }, {
+      onSuccess: () => {
+        console.log('Post created successfully');
+        setNewDiscussion({ title: '', content: '', tags: '', category: 'General' });
+      },
+      onError: (error) => {
+        console.error('Failed to create post:', error);
+        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+          alert('Your session has expired. Please sign in again to create posts.');
+        } else {
+          alert('Failed to create post. Please try again.');
+        }
+      }
     });
-    
-    setNewDiscussion({ title: '', content: '', tags: '', category: 'General' });
   };
 
   const filteredDiscussions = discussions.filter((discussion: DiscussionItem) => {
@@ -372,73 +401,9 @@ const CommunityPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Club Create Modal */}
-      <Dialog open={clubModalOpen} onOpenChange={setClubModalOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create New Club</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Club Name"
-              value={newClub.name}
-              onChange={(e) => setNewClub({ ...newClub, name: e.target.value })}
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-            <Textarea
-              placeholder="Club Description"
-              value={newClub.description}
-              onChange={(e) => setNewClub({ ...newClub, description: e.target.value })}
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-            <Button
-              onClick={() => {
-                addClub.mutate({ name: newClub.name, description: newClub.description, founderId: currentUserId });
-                setNewClub({ name: '', description: '' });
-                setClubModalOpen(false);
-              }}
-              className="w-full bg-green-600 hover:bg-green-700"
-              disabled={addClub.isPending}
-            >
-              {addClub.isPending ? 'Creating...' : 'Create Club'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Workshop creation modal */}
-      <Dialog open={workshopModalOpen} onOpenChange={setWorkshopModalOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create New Workshop</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Workshop Name"
-              value={newWorkshop.name}
-              onChange={(e) => setNewWorkshop({ ...newWorkshop, name: e.target.value })}
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-            <Textarea
-              placeholder="Workshop Description"
-              value={newWorkshop.description}
-              onChange={(e) => setNewWorkshop({ ...newWorkshop, description: e.target.value })}
-              className="bg-gray-800 border-gray-600 text-white"
-            />
-            <Button
-              onClick={() => {
-                addWorkshop.mutate({ name: newWorkshop.name, description: newWorkshop.description, hostId: currentUserId });
-                setNewWorkshop({ name: '', description: '' });
-                setWorkshopModalOpen(false);
-              }}
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              disabled={addWorkshop.isPending}
-            >
-              Create Workshop
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Professional Creation Modals */}
+      <ClubCreationModal open={clubModalOpen} onOpenChange={setClubModalOpen} />
+      <WorkshopCreationModal open={workshopModalOpen} onOpenChange={setWorkshopModalOpen} />
 
       {/* Navigation Tabs */}
       <div className="sticky top-0 z-40 bg-black/30 backdrop-blur-md border-b border-white/10">
@@ -738,51 +703,30 @@ const CommunityPage: React.FC = () => {
               <p className="text-xl text-gray-300">Join exclusive communities of passionate creators</p>
             </div>
 
+            <div className="flex justify-center mb-8">
+              <button
+                onClick={() => setClubModalOpen(true)}
+                className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center"
+              >
+                <Plus className="h-8 w-8" />
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {clubs.map((club) => {
-                const isMember = club.members.includes(currentUserId);
-                const isPending = false; // No pending system in new backend
+                const isMember = club.members?.includes(currentUserId) || false;
+                const isCreator = club.founder_id === currentUserId;
                 return (
-                <div
-                  key={club.id}
-                  className="bg-gradient-to-br from-green-900/30 to-blue-900/30 rounded-2xl p-6 border border-green-500/20 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-white">{club.name}</h3>
-                  </div>
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Members</span>
-                      <span className="text-white font-semibold">{club.members.length}</span>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  {isMember && (
-                    <button
-                      onClick={() => setLocation(`/clubs/${club.id}`)}
-                      className="w-full py-3 bg-green-600/30 text-green-200 rounded-xl font-semibold hover:bg-green-600/40 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Crown className="h-4 w-4" /> Enter Club
-                    </button>
-                  )}
-                  {isPending && !isMember && (
-                    <div className="w-full py-3 bg-yellow-600/30 text-yellow-200 rounded-xl font-semibold flex items-center justify-center gap-2">
-                      Request Pending
-                    </div>
-                  )}
-                  {!isMember && !isPending && (
-                    <button
-                      onClick={() => joinClub.mutate({ clubId: club.id, userId: currentUserId })}
-                      className="w-full py-3 bg-green-500/20 text-green-300 rounded-xl font-semibold hover:bg-green-500/30 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Crown className="h-4 w-4" /> Request to Join
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                  <ClubCard
+                    key={club.id}
+                    club={club}
+                    onJoin={(clubId) => joinClub.mutate({ clubId, userId: currentUserId })}
+                    onEnter={(clubId) => setLocation(`/clubs/${clubId}`)}
+                    isJoined={isMember}
+                    isCreator={isCreator}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -798,29 +742,30 @@ const CommunityPage: React.FC = () => {
               <p className="text-xl text-gray-300">Collaborate on novels and hone your craft</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {workshops.map((ws) => (
-                <div
-                  key={ws.id}
-                  className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-2xl p-6 border border-purple-500/20 hover:border-purple-400/50 transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer"
-                >
-                  <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                    {ws.name}
-                    <span className="text-xs bg-purple-600/50 px-2 py-0.5 rounded-full">{ws.members.length} members</span>
-                  </h3>
-                  <p className="text-gray-300 mb-4 line-clamp-3 min-h-[48px]">{ws.description}</p>
+            <div className="flex justify-center mb-8">
+              <button
+                onClick={() => setWorkshopModalOpen(true)}
+                className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 flex items-center justify-center"
+              >
+                <Plus className="h-8 w-8" />
+              </button>
+            </div>
 
-                  <button
-                    onClick={() => {
-                      joinWorkshop.mutate({ workshopId: ws.id, userId: currentUserId });
-                      setLocation(`/workshops/${ws.id}`);
-                    }}
-                    className="w-full py-3 bg-purple-500/20 text-purple-300 rounded-xl font-semibold hover:bg-purple-500/30 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Crown className="h-4 w-4" /> Join Workshop
-                  </button>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {workshops.map((ws) => {
+                const isMember = ws.members?.includes(currentUserId) || false;
+                const isInstructor = ws.host_id === currentUserId;
+                return (
+                  <WorkshopCard
+                    key={ws.id}
+                    workshop={ws}
+                    onJoin={(workshopId) => joinWorkshop.mutate({ workshopId: workshopId, userId: currentUserId })}
+                    onEnter={(workshopId) => setLocation(`/workshops/${workshopId}`)}
+                    isJoined={isMember}
+                    isInstructor={isInstructor}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -866,10 +811,39 @@ const CommunityPage: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <button onClick={()=>uploadInputRef.current?.click()} className="px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
-                 <ImagePlus className="h-5 w-5" /> Upload Your Art
-               </button>
-               <input type="file" accept="image/*" ref={uploadInputRef} className="hidden" onChange={(e)=>{const f=e.target.files?.[0]; if(f) void handleUploadArt(f);}}/>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newArt.file) return;
+                  void handleUploadArt(newArt.file, newArt.title, newArt.artist);
+                  setNewArt({ title: '', artist: '', file: null });
+                }}
+                className="max-w-md mx-auto space-y-4 bg-pink-900/20 p-6 rounded"
+              >
+                <h3 className="text-xl font-semibold text-white">Upload New Artwork</h3>
+                <Input
+                  placeholder="Artwork Title"
+                  value={newArt.title}
+                  onChange={(e) => setNewArt({ ...newArt, title: e.target.value })}
+                  required
+                />
+                <Input
+                  placeholder="Artist Name"
+                  value={newArt.artist}
+                  onChange={(e) => setNewArt({ ...newArt, artist: e.target.value })}
+                  required
+                />
+                <Input
+                  type="file"
+                  accept="image/*"
+                  ref={uploadInputRef}
+                  onChange={(e) => setNewArt({ ...newArt, file: e.target.files?.[0] || null })}
+                  required
+                />
+                <Button type="submit" className="w-full bg-pink-600 hover:bg-pink-700">
+                  Share Art
+                </Button>
+              </form>
             </div>
           </div>
         )}

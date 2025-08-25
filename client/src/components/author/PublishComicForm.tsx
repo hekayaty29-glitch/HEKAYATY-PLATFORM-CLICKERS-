@@ -70,7 +70,7 @@ export default function PublishComicForm({ isPremium }: PublishComicFormProps) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/comics"] });
       toast({ title: "Comic published successfully!" });
-      navigate(`/comics/${data.id}`);
+      navigate(`/story/${data.id}`);
     },
     onError: (err: Error) => {
       toast({ title: "Publishing failed", description: err.message, variant: "destructive" });

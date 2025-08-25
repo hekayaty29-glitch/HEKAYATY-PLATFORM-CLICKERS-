@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Search, BookOpen } from "lucide-react";
-import StoryCard from "@/components/story/StoryCard";
+import StoryCard from "@/components/common/StoryCard";
 import { StoryCard as StoryCardType } from "@/lib/types";
 import bgImg from "@/assets/d2c8245c-c591-4cc9-84d2-27252be8dffb.png";
 
@@ -49,19 +50,27 @@ export default function AllStoriesSection() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {filtered.slice(0, 6).map((story) => (
-              <StoryCard key={story.id} story={story} />
+              <StoryCard key={story.id} story={{
+                ...story, 
+                id: story.id.toString(),
+                ratingCount: story.ratingCount || 0,
+                author: story.author ? {
+                  ...story.author,
+                  id: story.author.id.toString()
+                } : { id: '', fullName: 'Unknown Author', avatarUrl: '' }
+              }} />
             ))}
           </div>
         )}
 
         {/* Link to full browse page */}
         <div className="text-center mt-10">
-          <a
+          <Link
             href="/stories"
             className="inline-block bg-amber-500 hover:bg-amber-600 text-amber-50 font-cinzel py-2 px-6 rounded-full transition-colors"
           >
             View All Stories
-          </a>
+          </Link>
         </div>
       </div>
     </section>

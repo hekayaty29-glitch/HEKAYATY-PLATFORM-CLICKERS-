@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Facebook } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -18,7 +19,21 @@ export default function Footer() {
                 className="text-amber-50 hover:text-amber-500 transition-colors"
                 aria-label="Facebook"
               >
-                <Facebook size={18} />
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                </svg>
+              </a>
+              <a href="https://www.tiktok.com/@hekayaty11?_t=ZS-8z0lNZI2Caw&_r=1" target="_blank" rel="noopener noreferrer" className="text-amber-50 hover:text-pink-500 transition-colors" aria-label="TikTok">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6c0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.87 5.58c-.5 4.3 3.53 7.44 7.37 6.57c3.24-.73 5.52-3.85 4.88-7.11z"></path>
+                </svg>
+              </a>
+              <a href="https://www.instagram.com/hekayaty_ma?igsh=MWRmZ2R2bHQyM256cA==" target="_blank" rel="noopener noreferrer" className="text-amber-50 hover:text-purple-500 transition-colors" aria-label="Instagram">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
               </a>
               <a 
                 href="https://www.youtube.com/@Hekayaty-q2i" 

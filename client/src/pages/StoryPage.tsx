@@ -15,15 +15,27 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Star, 
   StarHalf, 
-  Bookmark, 
-  Clock, 
-  Calendar, 
-  MessageSquare, 
+  BookOpen, 
+  Heart, 
+  MessageCircle, 
   Share2, 
-  AlertTriangle
+  Flag,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Upload,
+  FileText,
+  Plus,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  Bookmark
 } from "lucide-react";
 import { StoryDetail, Rating } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
@@ -53,14 +65,21 @@ const ratingFormSchema = z.object({
 
 export default function StoryPage() {
   const [, params] = useRoute("/story/:id");
-  const storyId = params ? parseInt(params.id) : 0;
+  const storyId = params?.id || "";
+  console.log('StoryPage params:', params);
+  console.log('StoryPage storyId:', storyId);
   const { user, isAuthenticated } = useAuth();
   const isAdmin = user?.username === 'Admin';
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedRating, setSelectedRating] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [userRating, setUserRating] = useState<Rating | null>(null);
+  const [showChapterUpload, setShowChapterUpload] = useState(false);
+  const [uploadingChapter, setUploadingChapter] = useState(false);
+  const [chapterTitle, setChapterTitle] = useState("");
+  const [chapterOrder, setChapterOrder] = useState(1);
 
   const form = useForm<z.infer<typeof ratingFormSchema>>({
     resolver: zodResolver(ratingFormSchema),
@@ -70,22 +89,194 @@ export default function StoryPage() {
     },
   });
   
-  // Fetch story details
-  const { data: story, isLoading, error } = useQuery<StoryDetail>({
-    queryKey: [`/api/stories/${storyId}`],
+  // Fetch content details (story or comic)
+  const { data: content, isLoading, error } = useQuery({
+    queryKey: ["content", storyId],
+    queryFn: async () => {
+      console.log('Fetching content for ID:', storyId);
+      try {
+        // Try fetching as story first
+        console.log('Trying to fetch as story...');
+        const storyResponse = await apiRequest("GET", `/api/stories/${storyId}`);
+        if (!storyResponse.ok) {
+          throw new Error(`Story API failed: ${storyResponse.status}`);
+        }
+        const storyData = await storyResponse.json();
+        console.log('Story data found:', storyData);
+        return { ...storyData, contentType: 'story' };
+      } catch (storyError) {
+        console.log('Story fetch failed:', storyError);
+        try {
+          // If story fails, try fetching as comic
+          console.log('Trying to fetch as comic...');
+          const comicResponse = await apiRequest("GET", `/api/comics/${storyId}`);
+          if (!comicResponse.ok) {
+            throw new Error(`Comic API failed: ${comicResponse.status}`);
+          }
+          const comicData = await comicResponse.json();
+          console.log('Comic data found:', comicData);
+          return { ...comicData, contentType: 'comic' };
+        } catch (comicError) {
+          console.log('Comic fetch failed:', comicError);
+          throw new Error('Content not found');
+        }
+      }
+    },
     enabled: !!storyId,
+    retry: false,
+  }) as { data: any, isLoading: boolean, error: any };
+
+  // For backward compatibility, alias content as story
+  const story = content;
+
+  // Fetch chapters only for stories (not comics)
+  const { data: chaptersData, isLoading: chaptersLoading, error: chaptersError } = useQuery({
+    queryKey: ["story-chapters", storyId],
+    queryFn: async () => {
+      console.log('Fetching chapters for story:', storyId);
+      const response = await apiRequest("GET", `/api/stories/${storyId}/chapters`);
+      console.log('Chapters API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Chapters API error:', errorText);
+        throw new Error(`Failed to fetch chapters: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Chapters API response:', data);
+      return data;
+    },
+    enabled: !!storyId && story?.contentType === 'story',
+  }) as { data: any, isLoading: boolean, error: any };
+
+  // Chapter upload mutation
+  const uploadChapterMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      console.log('Uploading chapter for story:', storyId);
+      console.log('FormData contents:', Array.from(formData.entries()));
+      
+      const response = await apiRequest("POST", `/api/stories/${storyId}/chapters`, formData);
+      
+      console.log('Upload response:', response);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Chapter uploaded successfully!",
+      });
+      setShowChapterUpload(false);
+      setChapterTitle("");
+      setChapterOrder(1);
+      // Refetch chapters
+      queryClient.invalidateQueries({ queryKey: ["story-chapters", storyId] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload chapter. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Chapter upload error:', error);
+    },
   });
-  
+
+  // Handle chapter upload
+  const handleChapterUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!storyId) {
+      toast({
+        title: "Error",
+        description: "Story ID is missing. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const formData = new FormData(e.currentTarget);
+    const file = formData.get('chapters') as File;
+    
+    console.log('Form submission - storyId:', storyId);
+    console.log('Form submission - file:', file);
+    console.log('Form submission - chapterTitle:', chapterTitle);
+    console.log('Form submission - chapterOrder:', chapterOrder);
+    
+    if (!file || !chapterTitle.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide both a chapter title and file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clear existing FormData and rebuild it properly
+    const uploadFormData = new FormData();
+    uploadFormData.append('chapters', file);
+    uploadFormData.append('chapterNames', chapterTitle);
+    uploadFormData.append('chapterOrders', chapterOrder.toString());
+    
+    setUploadingChapter(true);
+    try {
+      await uploadChapterMutation.mutateAsync(uploadFormData);
+    } catch (error) {
+      console.error('Upload error in handleChapterUpload:', error);
+    } finally {
+      setUploadingChapter(false);
+    }
+  };
+
+  // Function to get story content - either from chapters or fallback to story.content
+  const getStoryContent = () => {
+    console.log('Chapters data:', chaptersData); // Debug log
+    
+    if ((chaptersData as any)?.chapters && (chaptersData as any).chapters.length > 0) {
+      console.log('Found chapters:', (chaptersData as any).chapters.length); // Debug log
+      
+      // Combine all chapters content
+      const combinedContent = (chaptersData as any).chapters
+        .sort((a: any, b: any) => a.chapter_order - b.chapter_order)
+        .map((chapter: any) => {
+          console.log('Processing chapter:', chapter.title, 'Order:', chapter.chapter_order, 'Type:', chapter.file_type); // Debug log
+          
+          if (chapter.file_type === 'text' && chapter.content) {
+            return `# ${chapter.title}\n\n${chapter.content}`;
+          } else if (chapter.file_type === 'pdf' && chapter.file_url) {
+            return `# ${chapter.title}\n\n[PDF_CHAPTER:${chapter.file_url}]`;
+          } else if (chapter.file_type === 'audio' && chapter.file_url) {
+            return `# ${chapter.title}\n\n[AUDIO_CHAPTER:${chapter.file_url}]`;
+          } else if (chapter.file_type === 'image' && chapter.file_url) {
+            return `# ${chapter.title}\n\n[IMAGE_CHAPTER:${chapter.file_url}]`;
+          }
+          return `# ${chapter.title}\n\nChapter content not available.`;
+        })
+        .join('\n\n---\n\n');
+        
+      console.log('Combined content length:', combinedContent.length); // Debug log
+      return combinedContent;
+    }
+    
+    console.log('No chapters found, using story content'); // Debug log
+    console.log('Story data:', story); // Debug log
+    console.log('Chapters loading:', chaptersLoading); // Debug log
+    console.log('Chapters error:', chaptersError); // Debug log
+    
+    // Fallback to story.content if no chapters
+    return (story as any)?.content || 'No content available.';
+  };
+
   // Fetch story ratings
   const { data: ratings } = useQuery<Rating[]>({
     queryKey: [`/api/stories/${storyId}/ratings`],
-    enabled: !!storyId,
+    enabled: !!storyId && storyId !== "",
   });
   
   // Update state when story data is loaded
   useEffect(() => {
     if (story) {
-      setIsBookmarked(story.isBookmarked);
+      setIsBookmarked(story?.isBookmarked || false);
     }
   }, [story]);
   
@@ -140,7 +331,7 @@ export default function StoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/stories/${storyId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/stories/${storyId}/ratings`] });
-      setShowRatingDialog(false);
+      setShowRatingForm(false);
       toast({
         title: "Rating submitted",
         description: "Thank you for rating this story!",
@@ -201,15 +392,22 @@ export default function StoryPage() {
     );
   }
   
-  if (error || !story) {
+  
+  if (!story) {
+    console.log('Story is null/undefined. Error:', error);
+    console.log('Loading state:', isLoading);
+    console.log('Content data:', content);
     return (
       <div className="container mx-auto max-w-6xl px-4 py-10 text-center">
         <AlertTriangle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
         <h1 className="text-2xl font-cinzel font-bold text-brown-dark">Story Not Found</h1>
         <p className="mt-4 text-gray-600">The story you're looking for doesn't exist or has been removed.</p>
+        {error && (
+          <p className="mt-2 text-red-600 text-sm">Error: {error.message}</p>
+        )}
         <Button asChild className="mt-6 bg-amber-500 hover:bg-amber-600">
           <Link href="/stories">
-            <a>Browse Stories</a>
+            Browse Stories
           </Link>
         </Button>
       </div>
@@ -228,31 +426,45 @@ export default function StoryPage() {
     );
   }
 
-  const readTime = calculateReadTime(story.content);
-  const starsRating = getRatingStars(story.averageRating);
+  const readTime = calculateReadTime(getStoryContent() || story?.content || "");
+  const starsRating = getRatingStars(story.averageRating || 0);
   
   return (
     <>
       <Helmet>
-        <title>{story.title} - TaleKeeper</title>
-        <meta name="description" content={story.description} />
+        <title>{story?.title || 'Story'} - TaleKeeper</title>
+        <meta name="description" content={story?.description || ''} />
       </Helmet>
       
-      <div className="bg-gradient-to-b from-amber-500/5 to-amber-50/10 pt-8 pb-16">
+      <div 
+        className="bg-gradient-to-b from-amber-500/5 to-amber-50/10 pt-8 pb-16 relative"
+        style={{
+          backgroundImage: story.cover_url || story.coverImage || story.coverUrl ? 
+            `linear-gradient(rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2)), url(${story.cover_url || story.coverImage || story.coverUrl})` : 
+            undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="container mx-auto max-w-6xl px-4">
           {/* Story Header */}
           <div className="flex flex-col md:flex-row gap-8 mb-8">
             <div className="md:w-1/3">
               <img 
-                src={story.coverImage || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
+                src={story.cover_url || story.coverImage || story.coverUrl || "https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"} 
                 alt={`Cover for ${story.title}`} 
                 className="w-full h-auto object-cover rounded-lg shadow-lg" 
+                onError={(e) => {
+                  console.log('Cover image failed to load:', story.cover_url);
+                  console.log('Fallback to default image');
+                }}
               />
             </div>
             
             <div className="md:w-2/3">
               <div className="flex flex-wrap gap-2 mb-3">
-                {story.genres.map((genre) => (
+                {story.genres?.map((genre: any) => (
                   <Link key={genre.id} href={`/genres/${genre.id}`}>
                     <a className={cn(
                       "text-xs font-cinzel text-white px-2 py-1 rounded",
@@ -269,7 +481,7 @@ export default function StoryPage() {
                 )}
               </div>
               
-              <h1 className="font-cinzel text-3xl md:text-4xl font-bold text-brown-dark mb-3">
+              <h1 className="font-cinzel text-3xl md:text-4xl font-bold text-white drop-shadow-md mb-3">
                 {story.title}
               </h1>
               
@@ -283,35 +495,35 @@ export default function StoryPage() {
                         <Star key={i} className="h-5 w-5" />
                   ))}
                 </div>
-                <span className="text-gray-700">
-                  {story.averageRating.toFixed(1)} ({story.ratingCount} ratings)
+                <span className="text-white/90 drop-shadow-sm">
+                  {(story.averageRating || 0).toFixed(1)} ({story.ratingCount || 0} ratings)
                 </span>
               </div>
               
-              <p className="text-gray-700 mb-5">{story.description}</p>
+              <p className="text-white/90 mb-5 drop-shadow-sm">{story.description}</p>
               
               <Link href={`/author/${story.author?.id}`}>
-                <a className="flex items-center group mb-5">
+                <div className="flex items-center group mb-5">
                   <img 
-                    src={story.author?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
+                    src={story.author?.avatar_url || story.author?.avatarUrl || story.author?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
                     className="w-10 h-10 rounded-full object-cover" 
                     alt={`${story.author?.fullName}'s avatar`} 
                   />
                   <div className="ml-3">
-                    <span className="block text-brown-dark font-medium group-hover:text-amber-700">
+                    <span className="block text-white font-medium drop-shadow-sm group-hover:text-amber-300">
                       {story.author?.fullName}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-white/70">
                       Author
                     </span>
                   </div>
-                </a>
+                </div>
               </Link>
               
-              <div className="flex flex-wrap items-center text-gray-600 text-sm gap-4 mb-6">
+              <div className="flex flex-wrap items-center text-white/80 text-sm gap-4 mb-6">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
-                  <span>Published {formatDate(story.createdAt)}</span>
+                  <span>Published {formatDate(story?.createdAt || story?.created_at)}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
@@ -320,20 +532,97 @@ export default function StoryPage() {
               </div>
               
               <div className="flex flex-wrap gap-3">
-                <Button 
-                  variant="outline" 
-                  className={cn(
-                    "border-amber-500 text-brown-dark bg-transparent hover:bg-amber-500 hover:text-white",
-                    isBookmarked && "bg-amber-500 text-white"
-                  )}
-                  onClick={handleBookmark}
-                  disabled={bookmarkMutation.isPending}
-                >
-                  <Bookmark className="mr-2 h-4 w-4" />
-                  {isBookmarked ? "Saved to Library" : "Add to Library"}
-                </Button>
+                {/* Chapter Upload Button - Show for authenticated users */}
+                {isAuthenticated && (
+                  <Dialog open={showChapterUpload} onOpenChange={setShowChapterUpload}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="border-green-500 text-green-700 bg-transparent hover:bg-green-500 hover:text-white">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Add Chapter
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-amber-50 border-amber-500">
+                      <DialogHeader>
+                        <DialogTitle className="font-cinzel text-brown-dark">Upload New Chapter</DialogTitle>
+                        <DialogDescription>
+                          Add a new chapter to "{story.title}". Supports PDF, text, audio, and image files.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <form onSubmit={handleChapterUpload} className="space-y-4">
+                        <div>
+                          <Label htmlFor="chapterTitle" className="font-cinzel">Chapter Title</Label>
+                          <Input
+                            id="chapterTitle"
+                            value={chapterTitle}
+                            onChange={(e) => setChapterTitle(e.target.value)}
+                            placeholder="Enter chapter title..."
+                            className="border-amber-500/50 focus:border-amber-500"
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="chapterOrder" className="font-cinzel">Chapter Order</Label>
+                          <Input
+                            id="chapterOrder"
+                            type="number"
+                            min="1"
+                            value={chapterOrder}
+                            onChange={(e) => setChapterOrder(parseInt(e.target.value) || 1)}
+                            className="border-amber-500/50 focus:border-amber-500"
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="chapterFile" className="font-cinzel">Chapter File</Label>
+                          <Input
+                            id="chapterFile"
+                            name="chapters"
+                            type="file"
+                            accept=".pdf,.txt,.doc,.docx,.mp3,.wav,.jpg,.jpeg,.png,.gif"
+                            className="border-amber-500/50 focus:border-amber-500"
+                            required
+                          />
+                          <p className="text-sm text-gray-600 mt-1">
+                            Supported formats: PDF, Text, Audio (MP3, WAV), Images (JPG, PNG, GIF)
+                          </p>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setShowChapterUpload(false)}
+                            disabled={uploadingChapter}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            className="bg-green-500 hover:bg-green-600 text-white"
+                            disabled={uploadingChapter}
+                          >
+                            {uploadingChapter ? (
+                              <>
+                                <Upload className="mr-2 h-4 w-4 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Chapter
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                )}
                 
-                <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+                <Dialog open={showRatingForm} onOpenChange={setShowRatingForm}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="border-amber-500 text-brown-dark bg-transparent hover:bg-amber-500 hover:text-white">
                       <Star className="mr-2 h-4 w-4" />
@@ -413,29 +702,52 @@ export default function StoryPage() {
                     </Form>
                   </DialogContent>
                 </Dialog>
-                
-                <Button variant="outline" className="border-amber-500 text-brown-dark bg-transparent hover:bg-amber-500 hover:text-white">
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share
-                </Button>
               </div>
             </div>
           </div>
           
           <Separator className="my-8 bg-amber-500/30" />
           
-          {/* Story Content with Customizable Reader */}
+          {/* Content Display - Stories use Reader, Comics use PDF Viewer */}
           <div className="flex flex-col-reverse lg:flex-row gap-8">
             <div className="lg:w-3/4">
-              {/* Use the new Reader component */}
-              <Reader 
-                title={story.title}
-                author={story.author?.fullName || "Unknown Author"}
-                content={story.content}
-                storyId={story.id}
-                isBookmarked={isBookmarked}
-                onBookmark={handleBookmark}
-              />
+              {story?.contentType === 'comic' ? (
+                /* Comic PDF Viewer */
+                <div className="bg-white rounded-lg shadow-lg p-6">
+                  <h2 className="font-cinzel text-2xl font-bold text-brown-dark mb-4">
+                    {story.title}
+                  </h2>
+                  <div className="mb-4">
+                    <p className="text-gray-600 mb-2">
+                      <strong>Author:</strong> {story.author?.fullName || "Unknown Author"}
+                    </p>
+                    {story.description && (
+                      <p className="text-gray-700 mb-4">{story.description}</p>
+                    )}
+                  </div>
+                  {story.pdf_url ? (
+                    <OriginalPdfViewer 
+                      title={story.title}
+                      author={story.author?.fullName || "Unknown Author"}
+                      pdfUrl={story.pdf_url} 
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No PDF available for this comic.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Story Reader Component */
+                <Reader 
+                  title={story.title}
+                  author={story.author?.fullName || "Unknown Author"}
+                  content={getStoryContent()}
+                  storyId={story.id}
+                  isBookmarked={isBookmarked}
+                  onBookmark={handleBookmark}
+                />
+              )}
             </div>
             
             <div className="lg:w-1/4">
@@ -483,7 +795,7 @@ export default function StoryPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 italic">
+                      <p className="text-sm text-white/70 italic">
                         No reviews yet. Be the first to review this story!
                       </p>
                     )}
@@ -501,9 +813,9 @@ export default function StoryPage() {
                 
                 {story && (
                   <div className="mb-4 text-center">
-                    <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
-                      <Link href={`/listen/${story.id}`}><a>Listen</a></Link>
-                    </Button>
+                        <Button asChild className="bg-amber-600 hover:bg-amber-700 text-white">
+                          <Link href={`/listen/${story.id}`}>Listen</Link>
+                        </Button>
                   </div>
                 )}
                 
@@ -513,21 +825,21 @@ export default function StoryPage() {
                       <h3 className="font-cinzel text-lg font-bold text-brown-dark mb-3">About the Author</h3>
                       
                       <Link href={`/author/${story.author.id}`}>
-                        <a className="flex items-center group mb-3">
+                        <div className="flex items-center group mb-3">
                           <img 
-                            src={story.author.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
+                            src={story.author.avatar_url || story.author.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"} 
                             className="w-12 h-12 rounded-full object-cover" 
                             alt={`${story.author.fullName}'s avatar`} 
                           />
                           <div className="ml-3">
-                            <span className="block text-brown-dark font-medium group-hover:text-amber-700">
+                            <span className="block text-white font-medium drop-shadow-sm group-hover:text-amber-300">
                               {story.author.fullName}
                             </span>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-white/70">
                               Author
                             </span>
                           </div>
-                        </a>
+                        </div>
                       </Link>
                       
                       {story.author.bio ? (
@@ -537,7 +849,7 @@ export default function StoryPage() {
                             : story.author.bio}
                         </p>
                       ) : (
-                        <p className="text-sm text-gray-500 italic mb-4">
+                        <p className="text-sm text-white/70 italic mb-4">
                           This author hasn't added a bio yet.
                         </p>
                       )}
@@ -548,7 +860,7 @@ export default function StoryPage() {
                         className="w-full border-amber-500 text-brown-dark hover:bg-amber-500 hover:text-white"
                       >
                         <Link href={`/author/${story.author.id}`}>
-                          <a>View Profile</a>
+                          View Profile
                         </Link>
                       </Button>
                     </CardContent>
@@ -565,6 +877,6 @@ export default function StoryPage() {
           )}
         </div>
       </div>
-      </>
+    </>
   );
 }

@@ -18,12 +18,27 @@ export async function apiRequest(
 ): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession();
   console.log('Session debug:', { session: !!session, token: session?.access_token ? 'present' : 'missing' });
-  const hdrs: Record<string,string> = data ? { "Content-Type": "application/json" } : {};
+  
+  const hdrs: Record<string,string> = {};
+  
+  // Only set Content-Type for JSON data, not FormData
+  if (data && !(data instanceof FormData)) {
+    hdrs["Content-Type"] = "application/json";
+  }
+  
   if (session?.access_token) {
     hdrs["Authorization"] = `Bearer ${session.access_token}`;
     console.log('Added Authorization header');
   } else {
-    console.log('No access token found');
+    console.log('No access token found - attempting to refresh session');
+    // Try to refresh the session
+    const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+    if (refreshedSession?.access_token) {
+      hdrs["Authorization"] = `Bearer ${refreshedSession.access_token}`;
+      console.log('Added Authorization header from refreshed session');
+    } else {
+      console.log('Failed to refresh session - user may need to log in again');
+    }
   }
 
   const finalUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
@@ -31,7 +46,7 @@ export async function apiRequest(
   const res = await fetch(finalUrl, {
     method,
     headers: hdrs,
-    body: data ? JSON.stringify(data) : undefined,
+    body: data ? (data instanceof FormData ? data : JSON.stringify(data)) : undefined,
     credentials: "include",
   });
 

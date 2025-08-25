@@ -42,6 +42,7 @@ import {
 import clsx from "clsx";
 import { useGeneralFileUpload } from "@/hooks/useFileUpload";
 import { attemptDownload } from "@/lib/downloadGate";
+import { exportProject } from "@/lib/exportProject";
 import { useRoles } from "@/hooks/useRoles";
 import { type TaleCraftPublish, PUBLISH_PAGES } from "@shared/schema";
 
@@ -99,6 +100,25 @@ interface UserProfile {
 
 
 export default function TalesCraftPage() {
+  // Load drafts from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedStory = localStorage.getItem('tc_draft_story');
+      if (savedStory && !currentStoryProject) {
+        setCurrentStoryProject(JSON.parse(savedStory));
+      }
+      const savedComic = localStorage.getItem('tc_draft_comic');
+      if (savedComic && !currentComicProject) {
+        setCurrentComicProject(JSON.parse(savedComic));
+      }
+      const savedPhoto = localStorage.getItem('tc_draft_photo');
+      if (savedPhoto && !currentPhotoProject) {
+        setCurrentPhotoProject(JSON.parse(savedPhoto));
+      }
+    } catch (e) {
+      console.warn('Failed to restore draft', e);
+    }
+  }, []);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'story' | 'comic' | 'photo' | 'cover' | 'export' | 'profile'>('dashboard');
   const { data: storyProjects = [], isLoading: storyLoading } = useStoryProjects();
   const createStoryProjectMut = useCreateStoryProject();
@@ -301,42 +321,52 @@ export default function TalesCraftPage() {
   };
 
   const updateStoryProject = (updatedProject: StoryProject) => {
+  // autosave
+  try { localStorage.setItem('tc_draft_story', JSON.stringify(updatedProject)); } catch {}
+
     updateStoryProjectMut.mutate({ id: updatedProject.id, data: updatedProject });
     setCurrentStoryProject(updatedProject);
   };
 
   const updateComicProject = (updatedProject: ComicProject) => {
+  try { localStorage.setItem('tc_draft_comic', JSON.stringify(updatedProject)); } catch {}
+
     updateComicProjectMut.mutate({ id: updatedProject.id, data: updatedProject });
     setCurrentComicProject(updatedProject);
   };
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (!projectToDelete) return;
-    
+
     const { id, type, title } = projectToDelete;
-    
-    if (type === 'story') {
-      deleteStoryProjectMut.mutate(id);
-      if (currentStoryProject?.id === id) {
-        setCurrentStoryProject(null);
+
+    try {
+      if (type === 'story') {
+        await deleteStoryProjectMut.mutateAsync(id);
+        if (currentStoryProject?.id === id) {
+          setCurrentStoryProject(null);
+        }
+      } else if (type === 'comic') {
+        await deleteComicProjectMut.mutateAsync(id);
+        if (currentComicProject?.id === id) {
+          setCurrentComicProject(null);
+        }
+      } else {
+        await deletePhotoProjectMut.mutateAsync(id);
+        if (currentPhotoProject?.id === id) {
+          setCurrentPhotoProject(null);
+        }
       }
-    } else if (type === 'comic') {
-      deleteComicProjectMut.mutate(id);
-      if (currentComicProject?.id === id) {
-        setCurrentComicProject(null);
-      }
-    } else {
-      deletePhotoProjectMut.mutate(id);
-      if (currentPhotoProject?.id === id) {
-        setCurrentPhotoProject(null);
-      }
+      toast.success(`"${title}" has been deleted`);
+    } catch (error: any) {
+      console.error('Delete project failed', error);
+      toast.error(error?.message || 'Failed to delete project');
+    } finally {
+      setProjectToDelete(null);
+      setIsDeleteDialogOpen(false);
     }
-    
-    toast.success(`"${title}" has been deleted`);
-    setProjectToDelete(null);
-    setIsDeleteDialogOpen(false);
   };
-  
+
   const confirmDelete = (id: string, type: 'story' | 'comic' | 'photo', title: string) => {
     setProjectToDelete({ id, type, title });
     setIsDeleteDialogOpen(true);
@@ -596,7 +626,80 @@ export default function TalesCraftPage() {
     </div>
   );
 
-  const ExportPanel = () => (
+  const handleExport = async () => {
+  try {
+    if (activeTab === 'story' && currentStoryProject) {
+      await exportProject({ type: 'story', project: currentStoryProject });
+    } else if (activeTab === 'comic' && currentComicProject) {
+      await exportProject({ type: 'comic', project: currentComicProject });
+    } else if (activeTab === 'cover' && currentPhotoProject) {
+      await exportProject({ type: 'photo', project: currentPhotoProject });
+    }
+    toast.success('ZIP exported');
+  } catch (err:any) {
+    console.error('Export failed', err);
+    toast.error('Export failed');
+  }
+};
+
+  const handlePDFExport = async () => {
+  try {
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
+    
+    if (activeTab === 'comic' && currentComicProject) {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Get comic pages data
+      const pages = currentComicProject.pages || [];
+      
+      for (let i = 0; i < pages.length; i++) {
+        if (i > 0) pdf.addPage();
+        
+        // Find the canvas element for this page
+        const pageElement = document.querySelector(`[data-page="${i}"]`) as HTMLElement;
+        if (pageElement) {
+          const canvas = await html2canvas(pageElement, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - 20; // 10mm margin on each side
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          // Center the image on the page
+          const x = 10;
+          const y = (pageHeight - imgHeight) / 2;
+          
+          pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+        }
+      }
+      
+      // Add title page if no pages exist
+      if (pages.length === 0) {
+        pdf.setFontSize(24);
+        pdf.text(currentComicProject.title || 'Untitled Comic', pageWidth / 2, 50, { align: 'center' });
+        pdf.setFontSize(12);
+        pdf.text('Created with TalesCraft', pageWidth / 2, 70, { align: 'center' });
+      }
+      
+      pdf.save(`${currentComicProject.title || 'comic'}.pdf`);
+      toast.success('PDF exported successfully!');
+    } else {
+      toast.error('Please select a comic project to export');
+    }
+  } catch (err: any) {
+    console.error('PDF export failed', err);
+    toast.error('PDF export failed');
+  }
+};
+
+const ExportPanel = () => (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-4">Export Your Creations</h2>
@@ -611,7 +714,7 @@ export default function TalesCraftPage() {
             <CardDescription>Professional PDF format for printing and sharing</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" onClick={() => attemptDownload(() => alert('PDF export would generate downloadable file'), roles)}>
+            <Button className="w-full" onClick={handlePDFExport}>
               Generate PDF
             </Button>
           </CardContent>
@@ -637,16 +740,8 @@ export default function TalesCraftPage() {
             <CardDescription>Share your work with the TalesCraft community</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" onClick={() => {
-            if (activeTab === 'story' && currentStoryProject) {
-              openPublishModal('story', currentStoryProject);
-            } else if (activeTab === 'comic' && currentComicProject) {
-              openPublishModal('comic', currentComicProject);
-            } else {
-              toast.error('Open a story or comic project first to publish.');
-            }
-          }}>
-              Publish Now
+            <Button className="w-full" onClick={handleExport}>
+              Export ZIP
             </Button>
           </CardContent>
         </Card>
@@ -787,6 +882,7 @@ export default function TalesCraftPage() {
               <ComicEditor 
                 project={currentComicProject} 
                 onProjectUpdate={updateComicProject}
+                onPublish={() => openPublishModal('comic', currentComicProject)}
               />
             ) : (
               <div className="h-full flex items-center justify-center">

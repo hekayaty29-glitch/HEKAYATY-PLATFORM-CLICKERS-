@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/AuthForms";
 import { Link } from "wouter";
+import signBg from "@/assets/3ea43a58-b1c6-48e0-8ece-a5c70df1786c_15-36-55.jpg";
 
 export default function SignInPage() {
   return (
@@ -11,7 +12,7 @@ export default function SignInPage() {
         <meta name="description" content="Sign in to your HEKAYATY account to continue your reading journey." />
       </Helmet>
       
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-gradient-to-b from-brown-dark to-brown-900">
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12 px-4 bg-cover bg-center" style={{ backgroundImage: `url(${signBg})` }}>
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/" className="inline-block text-3xl font-cinzel font-bold">

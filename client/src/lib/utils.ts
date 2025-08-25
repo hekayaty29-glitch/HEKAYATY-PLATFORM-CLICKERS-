@@ -7,7 +7,17 @@ export function cn(...inputs: ClassValue[]) {
 
 // Format date to readable string
 export function formatDate(dateString: string): string {
+  if (!dateString) {
+    return 'Unknown date';
+  }
+  
   const date = new Date(dateString);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+  
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -24,6 +34,9 @@ export function truncateText(text: string, maxLength: number): string {
 // Calculate read time estimate
 export function calculateReadTime(content: string): number {
   const wordsPerMinute = 200;
+  if (!content || typeof content !== 'string') {
+    return 0;
+  }
   const wordCount = content.trim().split(/\s+/).length;
   return Math.ceil(wordCount / wordsPerMinute);
 }

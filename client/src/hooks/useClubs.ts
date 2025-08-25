@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export interface Club {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   logo_url: string | null;
@@ -21,7 +21,7 @@ export interface ClubMessage {
 
 /* ------------ helpers ------------- */
 const clubsKey = ["clubs"];
-const clubKey = (id: number | undefined) => ["club", id];
+const clubKey = (id: string | undefined) => ["club", id];
 
 /* ------------ hooks ------------- */
 export function useClubs() {
@@ -35,7 +35,7 @@ export function useClubs() {
   });
 }
 
-export function useClub(id: number | undefined) {
+export function useClub(id: string | undefined) {
   return useQuery<Club & { messages: ClubMessage[] }>({
     enabled: !!id,
     queryKey: clubKey(id),
@@ -50,8 +50,8 @@ export function useClub(id: number | undefined) {
 export function useJoinClub() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ clubId, userId }: { clubId: number; userId: string }) => {
-      const { error } = await supabase.from("club_members").insert({ club_id: clubId, user_id: userId });
+    mutationFn: async ({ clubId, userId }: { clubId: string; userId: string }) => {
+      const { error } = await supabase.from("club_memberships").insert({ club_id: clubId, user_id: userId });
       if (error && error.code !== "23505") throw error; // ignore duplicate
     },
     onSuccess: (_, { clubId }) => {
@@ -64,7 +64,7 @@ export function useJoinClub() {
 export function useSendClubMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ clubId, userId, text }: { clubId: number; userId: string; text: string }) => {
+    mutationFn: async ({ clubId, userId, text }: { clubId: string; userId: string; text: string }) => {
       const { error } = await supabase.from("club_messages").insert({ club_id: clubId, user_id: userId, text });
       if (error) throw error;
     },
@@ -78,10 +78,13 @@ export function useAddClub() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ name, description, founderId }: { name: string; description?: string; founderId: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("clubs")
-        .insert({ name, description: description ?? null, founder_id: founderId });
+        .insert({ name, description: description ?? null, creator_id: founderId })
+        .select("id").single();
       if (error) throw error;
+      // auto-enroll creator as admin member
+      await supabase.from("club_memberships").insert({ club_id: data.id, user_id: founderId, role: "admin" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: clubsKey });
@@ -92,7 +95,7 @@ export function useAddClub() {
 export function useUpdateClubLogo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ clubId, url }: { clubId: number; url: string }) => {
+    mutationFn: async ({ clubId, url }: { clubId: string; url: string }) => {
       const { error } = await supabase.from("clubs").update({ logo_url: url }).eq("id", clubId);
       if (error) throw error;
     },

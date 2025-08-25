@@ -16,31 +16,36 @@ export interface SupabaseUser {
 }
 
 export interface SupabaseStory {
-  id: number;
+  id: string;
   title: string;
   description: string;
   content: string;
-  cover_image?: string;
-  poster_image?: string;
-  author_id: string;
-  workshop_id?: string;
-  is_premium: boolean;
-  is_published: boolean;
-  is_short_story: boolean;
-  created_at: string;
-  updated_at: string;
+  cover_url?: string;
+  poster_url?: string;
+  soundtrack_url?: string;
+  extra_photos?: any;
+  status?: string;
+  author_id: string; // UUID as string - use database column name
+  is_premium: boolean; // Use database column name
+  is_published: boolean; // Use database column name
+  is_short_story: boolean; // Use database column name
+  placement?: string | null; 
+  genre?: string[]; 
+  created_at?: string; // Use database column name
+  updated_at?: string; // Use database column name
 }
 
 export interface SupabaseComic {
   id: number;
   title: string;
   description: string;
-  cover_image?: string;
+  cover_url?: string;
   pdf_url?: string;
   author_id: string;
   workshop_id?: string;
   is_premium: boolean;
   is_published: boolean;
+  genre?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +64,99 @@ export interface TaleCraftProject {
 }
 
 export class SupabaseStorage {
+  // Comic methods
+  async getComic(id: string): Promise<SupabaseComic | null> {
+    const { data, error } = await supabase
+      .from('comics')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Get comic error:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async deleteComic(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('comics')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete comic error:', error);
+      return false;
+    }
+
+    return true;
+  }
+
+  // Chapter methods
+  async createChapter(chapter: { story_id: string; title: string; file_url?: string; file_type?: 'pdf' | 'text' | 'audio' | 'image'; chapter_order: number; content?: string | null }): Promise<any | null> {
+    const chapterData = {
+      story_id: chapter.story_id,
+      title: chapter.title,
+      content: chapter.content,
+      file_url: chapter.file_url,
+      file_type: chapter.file_type || 'text',
+      chapter_order: chapter.chapter_order
+    };
+
+    const { data, error } = await supabase
+      .from('story_chapters')
+      .insert(chapterData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Create chapter error:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async getChapters(storyId: string): Promise<any[]> {
+    console.log('Supabase getChapters called with storyId:', storyId);
+    
+    const { data, error } = await supabase
+      .from('story_chapters')
+      .select('*')
+      .eq('story_id', storyId)
+      .order('chapter_order');
+
+    if (error) {
+      console.error('Get chapters Supabase error:', error);
+      return [];
+    }
+
+    console.log('Supabase chapters result:', data);
+    return data || [];
+  }
+
+  async getAdjacentChapter(storyId: string, currentOrder: number, direction: 'prev' | 'next'): Promise<any | null> {
+    const op = direction === 'prev' ? 'lt' : 'gt';
+    const sort = direction === 'prev' ? { ascending: false } : { ascending: true };
+
+    const { data, error } = await supabase
+      .from('story_chapters')
+      .select('*')
+      .eq('story_id', storyId)
+      .filter('chapter_order', op, currentOrder)
+      .order('chapter_order', sort)
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Get adjacent chapter error:', error);
+      return null;
+    }
+
+    return data;
+  }
   // User methods
   async getUserProfile(id: string): Promise<SupabaseUser | null> {
     const { data, error } = await supabase
@@ -157,12 +255,12 @@ export class SupabaseStorage {
     return genres.find(g => g.slug === slug) || null;
   }
 
-  async getStoryGenres(storyId: number): Promise<any[]> {
+  async getStoryGenres(storyId: string): Promise<any[]> {
     // For now, return empty array - in full implementation would join with story_genres table
     return [];
   }
 
-  async addStoryGenre(data: { storyId: number; genreId: number }): Promise<any> {
+  async addStoryGenre(data: { storyId: string; genreId: string }): Promise<any> {
     // For now, return null - in full implementation would insert into story_genres table
     return null;
   }
@@ -241,7 +339,7 @@ export class SupabaseStorage {
   }
 
   // Story methods
-  async getStory(id: number): Promise<SupabaseStory | null> {
+  async getStory(id: string): Promise<SupabaseStory | null> {
     const { data, error } = await supabase
       .from('stories')
       .select('*')
@@ -259,11 +357,14 @@ export class SupabaseStorage {
   async getStories(options: {
     authorId?: string;
     genreId?: number;
+    placement?: string;
     isPremium?: boolean;
     isShortStory?: boolean;
     limit?: number;
     offset?: number;
   } = {}): Promise<SupabaseStory[]> {
+    console.log('getStories called with options:', options);
+    
     let query = supabase
       .from('stories')
       .select('*')
@@ -282,6 +383,11 @@ export class SupabaseStorage {
       query = query.eq('is_short_story', options.isShortStory);
     }
 
+    if (options.placement) {
+      console.log('Filtering by placement:', options.placement);
+      query = query.eq('placement', options.placement);
+    }
+
     if (options.limit) {
       query = query.limit(options.limit);
     }
@@ -295,6 +401,11 @@ export class SupabaseStorage {
     if (error) {
       console.error('Get stories error:', error);
       return [];
+    }
+    
+    console.log('getStories result:', data?.length || 0, 'stories found');
+    if (data && data.length > 0) {
+      console.log('Sample story placements:', data.slice(0, 3).map(s => ({ id: s.id, title: s.title, placement: s.placement })));
     }
 
     return data || [];
@@ -350,25 +461,41 @@ export class SupabaseStorage {
   }
 
   async createStory(story: Omit<SupabaseStory, 'id' | 'created_at' | 'updated_at'>): Promise<SupabaseStory | null> {
-    const { data, error } = await supabase
-      .from('stories')
-      .insert(story)
-      .select()
-      .single();
+    console.log('=== SUPABASE STORY CREATION ===');
+    console.log('Input story data:', JSON.stringify(story, null, 2));
+    
+    try {
+      const { data, error } = await supabase
+        .from('stories')
+        .insert(story)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Create story error:', error);
+      if (error) {
+        console.error('=== SUPABASE ERROR ===');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        return null;
+      }
+
+      console.log('=== STORY CREATED SUCCESSFULLY ===');
+      console.log('Created story:', JSON.stringify(data, null, 2));
+      return data;
+    } catch (err) {
+      console.error('=== UNEXPECTED ERROR IN createStory ===');
+      console.error('Error:', err);
       return null;
     }
-
-    return data;
   }
 
   async addStory(story: any): Promise<SupabaseStory | null> {
     return this.createStory(story);
   }
 
-  async updateStory(id: number, updates: Partial<SupabaseStory>): Promise<SupabaseStory | null> {
+  async updateStory(id: string, updates: Partial<SupabaseStory>): Promise<SupabaseStory | null> {
     const { data, error } = await supabase
       .from('stories')
       .update(updates)
@@ -384,7 +511,7 @@ export class SupabaseStorage {
     return data;
   }
 
-  async deleteStory(id: number): Promise<boolean> {
+  async deleteStory(id: string): Promise<boolean> {
     const { error } = await supabase
       .from('stories')
       .delete()
@@ -414,7 +541,7 @@ export class SupabaseStorage {
   }
 
   // Rating methods
-  async getRating(userId: string, storyId: number): Promise<any> {
+  async getRating(userId: string, storyId: string): Promise<any> {
     const { data, error } = await supabase
       .from('story_ratings')
       .select('*')
@@ -429,7 +556,7 @@ export class SupabaseStorage {
     return data;
   }
 
-  async getRatings(storyId: number): Promise<any[]> {
+  async getRatings(storyId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('story_ratings')
       .select('*')
@@ -443,7 +570,7 @@ export class SupabaseStorage {
     return data || [];
   }
 
-  async createRating(rating: { user_id: string; story_id: number; rating: number; review?: string }): Promise<any> {
+  async createRating(rating: { user_id: string; story_id: string; rating: number; review?: string }): Promise<any> {
     const { data, error } = await supabase
       .from('story_ratings')
       .insert(rating)
@@ -458,7 +585,7 @@ export class SupabaseStorage {
     return data;
   }
 
-  async updateRating(id: number, updates: any): Promise<any> {
+  async updateRating(id: string, updates: any): Promise<any> {
     const { data, error } = await supabase
       .from('story_ratings')
       .update(updates)
@@ -474,7 +601,7 @@ export class SupabaseStorage {
     return data;
   }
 
-  async getAverageRating(storyId: number): Promise<number> {
+  async getAverageRating(storyId: string): Promise<number> {
     const { data, error } = await supabase
       .from('story_ratings')
       .select('rating')
@@ -489,7 +616,7 @@ export class SupabaseStorage {
   }
 
   // Bookmark methods
-  async getBookmark(userId: string, storyId: number): Promise<any> {
+  async getBookmark(userId: string, storyId: string): Promise<any> {
     const { data, error } = await supabase
       .from('story_bookmarks')
       .select('*')
@@ -521,7 +648,7 @@ export class SupabaseStorage {
     return (data?.map((bookmark: any) => bookmark.stories).filter(Boolean) || []) as SupabaseStory[];
   }
 
-  async createBookmark(bookmark: { user_id: string; story_id: number }): Promise<any> {
+  async createBookmark(bookmark: { user_id: string; story_id: string }): Promise<any> {
     const { data, error } = await supabase
       .from('story_bookmarks')
       .insert(bookmark)
@@ -549,6 +676,20 @@ export class SupabaseStorage {
     }
 
     return true;
+  }
+
+    // Project methods
+  async createProject(project: Omit<any, never>): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('projects')
+      .insert(project)
+      .select()
+      .single();
+    if (error) {
+      console.error('Create project error:', error);
+      return null;
+    }
+    return data;
   }
 
   // Admin metrics
@@ -591,10 +732,25 @@ export class SupabaseStorage {
 
     return count || 0;
   }
+
   // Character methods
+  async getCharacter(id: string | number): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('legendary_characters')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Get character error:', error);
+      return null;
+    }
+    return data;
+  }
+
   async getCharacters(): Promise<any[]> {
     const { data, error } = await supabase
-      .from('characters')
+      .from('legendary_characters')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -606,10 +762,20 @@ export class SupabaseStorage {
     return data || [];
   }
 
-  async createCharacter(char: { name: string; description: string; role: string; image: string }): Promise<any | null> {
+  async createCharacter(char: { name: string; description: string; role: string; image: string; backgroundStory?: string; characterType?: string; associatedStories?: number[] }): Promise<any | null> {
+    // Map frontend fields to database schema
+    const dbChar = {
+      name: char.name,
+      description: char.description,
+      photo_url: char.image,
+      bio: char.backgroundStory || char.description,
+      // Note: legendary_characters table doesn't have role, characterType, or associatedStories fields
+      // These may need to be added to the schema or handled differently
+    };
+
     const { data, error } = await supabase
-      .from('characters')
-      .insert(char)
+      .from('legendary_characters')
+      .insert(dbChar)
       .select()
       .single();
 
@@ -619,6 +785,44 @@ export class SupabaseStorage {
     }
 
     return data;
+  }
+
+  async updateCharacter(id: string | number, updates: Partial<{ name: string; description: string; role: string; image: string; backgroundStory?: string; characterType?: string; associatedStories?: number[] }>): Promise<any | null> {
+    // Map frontend fields to database schema
+    const dbUpdates: any = {};
+    if (updates.name) dbUpdates.name = updates.name;
+    if (updates.description) dbUpdates.description = updates.description;
+    if (updates.image) dbUpdates.photo_url = updates.image;
+    if (updates.backgroundStory) dbUpdates.bio = updates.backgroundStory;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('legendary_characters')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Update character error:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async deleteCharacter(id: string | number): Promise<boolean> {
+    const { error } = await supabase
+      .from('legendary_characters')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete character error:', error);
+      return false;
+    }
+
+    return true;
   }
 
   // TaleCraft Project methods
@@ -787,6 +991,114 @@ export class SupabaseStorage {
 
     if (error) {
       console.error('Add companion tale error:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  // Collaborator methods
+  async addCollaborators(storyId: string, userIds: string[], role: string = 'co_author'): Promise<boolean> {
+    const rows = userIds.map(uid => ({ story_id: storyId, user_id: uid, role }));
+    const { error } = await supabase.from('story_collaborators').insert(rows);
+    if (error) {
+      console.error('Add collaborators error:', error);
+      return false;
+    }
+    return true;
+  }
+
+  async getCollaborators(storyId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('story_collaborators')
+      .select('user_id, role, profiles:profiles(id, username, full_name, avatar_url)')
+      .eq('story_id', storyId);
+    if (error) {
+      console.error('Get collaborators error:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  async removeCollaborator(storyId: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('story_collaborators')
+      .delete()
+      .eq('story_id', storyId)
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Remove collaborator error:', error);
+      return false;
+    }
+    return true;
+  }
+
+  // Chapter versioning methods
+  async createChapterVersion(chapterId: string, content: string, fileUrl?: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('chapter_versions')
+      .insert({
+        chapter_id: chapterId,
+        content,
+        file_url: fileUrl,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Create chapter version error:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async getChapterVersions(chapterId: number): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('chapter_versions')
+      .select('*')
+      .eq('chapter_id', chapterId)
+      .order('version_no', { ascending: false });
+
+    if (error) {
+      console.error('Get chapter versions error:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  async updateChapterWithVersioning(chapterId: string, updates: any): Promise<boolean> {
+    // First, create a version of the current chapter
+    const currentChapter = await this.getChapterById(chapterId);
+    if (currentChapter) {
+      await this.createChapterVersion(chapterId, currentChapter.content, currentChapter.file_url);
+    }
+
+    // Then update the chapter
+    const { error } = await supabase
+      .from('story_chapters')
+      .update(updates)
+      .eq('id', chapterId);
+
+    if (error) {
+      console.error('Update chapter with versioning error:', error);
+      return false;
+    }
+
+    return true;
+  }
+
+  async getChapterById(chapterId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('story_chapters')
+      .select('*')
+      .eq('id', chapterId)
+      .single();
+
+    if (error) {
+      console.error('Get chapter by ID error:', error);
       return null;
     }
 

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { supabase } from "@/lib/supabase";
+import { PublishProjectDialog } from "./PublishProjectDialog";
 
 interface Page {
   id: string;
@@ -133,6 +134,7 @@ export default function StoryEditor({ project, onProjectUpdate }: StoryEditorPro
     project.chapters[0]?.pages[0]?.id || null
   );
   const [isPreview, setIsPreview] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const editorRef = useRef<HTMLDivElement>(null);
   
@@ -383,7 +385,19 @@ export default function StoryEditor({ project, onProjectUpdate }: StoryEditorPro
   };
 
   return (
-    <div className="flex h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
+    <>
+      <PublishProjectDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        defaultValues={{
+          title: project.title,
+          description: "",
+          projectType: "story",
+          content: project,
+        }}
+        onPublished={(id) => alert("Project published! ID: " + id)}
+      />
+      <div className="flex h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950">
       {/* Sidebar */}
       <aside className="w-80 border-r border-gray-700 bg-gray-900/50 flex flex-col">
         <div className="p-4 border-b border-gray-700">
@@ -604,6 +618,9 @@ export default function StoryEditor({ project, onProjectUpdate }: StoryEditorPro
                     {isPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     {isPreview ? "Edit" : "Preview"}
                   </Button>
+                  <Button variant="default" size="sm" onClick={() => setPublishOpen(true)}>
+                    Publish
+                  </Button>
                 </div>
               </div>
             </div>
@@ -660,5 +677,6 @@ export default function StoryEditor({ project, onProjectUpdate }: StoryEditorPro
         )}
       </main>
     </div>
+    </>
   );
 }

@@ -50,7 +50,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const isAdmin =
     isAdminFlag ||
     (user as any)?.is_admin === true ||
-    (user as any)?.user_metadata?.is_admin === true;
+    (user as any)?.user_metadata?.is_admin === true ||
+    (user as any)?.role === 'admin' ||
+    (user as any)?.role === 'staff';
   const canEdit = isAdmin;
   const canPublish = isAdmin;
 

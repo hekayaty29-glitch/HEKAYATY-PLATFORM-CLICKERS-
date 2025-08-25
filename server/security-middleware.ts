@@ -10,6 +10,11 @@ import crypto from "crypto";
 const createRateLimit = (windowMs: number, max: number, message: string) => {
   return rateLimit({
     skip: (req) => {
+      // Always skip rate limiting for upload endpoints
+      if (req.path.includes('/upload') || req.path.includes('/api/upload')) {
+        return true;
+      }
+      
       // Disable rate limits when running locally in development
       if (process.env.NODE_ENV !== "production") {
         const ip = req.ip || "";
@@ -56,7 +61,7 @@ export const generalRateLimit = createRateLimit(
 
 export const uploadRateLimit = createRateLimit(
   60 * 1000, // 1 minute
-  10, // 10 uploads
+  50, // 50 uploads (increased for comic editor)
   "Too many upload attempts, please try again later"
 );
 
@@ -306,10 +311,11 @@ export const setupSecurity = (app: Express) => {
     next();
   });
 
-  // Apply rate limiting (disabled in development)
+  // Apply rate limiting (disabled in development and for uploads)
   if (process.env.NODE_ENV === "production") {
     app.use('/api/auth', authRateLimit);
-    app.use('/api/upload', uploadRateLimit);
+    // Skip upload rate limiting entirely
+    // app.use('/api/upload', uploadRateLimit);
     app.use('/api', apiRateLimit);
     app.use(generalRateLimit);
   } else {

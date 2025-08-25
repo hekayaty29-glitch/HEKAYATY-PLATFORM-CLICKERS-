@@ -712,6 +712,20 @@ CREATE TABLE public.file_uploads (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Profiles
+CREATE TABLE public.profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    avatar_url TEXT,
+    bio TEXT,
+    location TEXT,
+    website TEXT,
+    subscription_end_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =====================================================
 -- INDEXES FOR PERFORMANCE
 -- =====================================================
