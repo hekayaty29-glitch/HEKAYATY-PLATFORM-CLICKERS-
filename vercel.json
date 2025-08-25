@@ -26,6 +26,10 @@
       "handle": "filesystem"
     },
     {
+      "src": "/auth/callback",
+      "dest": "/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
