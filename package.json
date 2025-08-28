@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsx watch server/index.ts",
-    "build": "npm install",
+    "build": "echo 'Build skipped - using tsx runtime'",
     "start": "tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push"
