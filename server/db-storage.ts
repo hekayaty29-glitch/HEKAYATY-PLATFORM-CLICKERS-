@@ -25,7 +25,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
+    const result = await db.insert(users).values(insertUser as any).returning();
     return result[0];
   }
 
@@ -154,7 +154,7 @@ export class DatabaseStorage implements IStorage {
         ...insertStory,
         createdAt: now,
         updatedAt: now
-      })
+      } as any)
       .returning();
     
     return result[0];
@@ -211,7 +211,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGenre(insertGenre: InsertGenre): Promise<Genre> {
-    const result = await db.insert(genres).values(insertGenre).returning();
+    const result = await db.insert(genres).values(insertGenre as any).returning();
     return result[0];
   }
 
@@ -233,7 +233,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addStoryGenre(storyGenre: InsertStoryGenre): Promise<void> {
-    await db.insert(storyGenres).values(storyGenre);
+    await db.insert(storyGenres).values(storyGenre as any);
   }
 
   // Rating methods
@@ -276,7 +276,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...insertRating,
         createdAt: now
-      })
+      } as any)
       .returning();
     
     return result[0];
@@ -345,7 +345,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...insertBookmark,
         createdAt: now
-      })
+      } as any)
       .returning();
     
     return result[0];
@@ -362,5 +362,23 @@ export class DatabaseStorage implements IStorage {
       .returning({ id: bookmarks.id });
     
     return result.length > 0;
+  }
+
+  // Admin metrics methods
+  async countUsers(): Promise<number> {
+    const result = await db.select({ count: count() }).from(users);
+    return Number(result[0]?.count || 0);
+  }
+
+  async countSubscribers(): Promise<number> {
+    const result = await db.select({ count: count() })
+      .from(users)
+      .where(eq(users.isPremium, true));
+    return Number(result[0]?.count || 0);
+  }
+
+  async countStories(): Promise<number> {
+    const result = await db.select({ count: count() }).from(stories);
+    return Number(result[0]?.count || 0);
   }
 }

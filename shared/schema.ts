@@ -43,8 +43,8 @@ export const storyGenres = pgTable("storyGenres", {
 
 export const ratings = pgTable("ratings", {
   id: serial("id").primaryKey(),
-  userId: text("userId").notNull(),
-  storyId: text("storyId").notNull(),
+  userId: integer("userId").notNull(),
+  storyId: integer("storyId").notNull(),
   rating: integer("rating").notNull(),
   review: text("review").default(""),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -67,18 +67,47 @@ export const projects = pgTable("projects", {
 
 export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
-  userId: text("userId").notNull(),
-  storyId: text("storyId").notNull(),
+  userId: integer("userId").notNull(),
+  storyId: integer("storyId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, isAdmin: true });
-export const insertStorySchema = createInsertSchema(stories).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertGenreSchema = createInsertSchema(genres).omit({ id: true });
-export const insertStoryGenreSchema = createInsertSchema(storyGenres);
-export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
-export const insertBookmarkSchema = createInsertSchema(bookmarks).omit({ id: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users, {
+  username: z.string().min(1),
+  password: z.string().min(1),
+  email: z.string().email(),
+  fullName: z.string().min(1)
+}).omit({ id: true, isAdmin: true });
+
+export const insertStorySchema = createInsertSchema(stories, {
+  title: z.string().min(1),
+  description: z.string().min(1),
+  content: z.string().min(1),
+  authorId: z.number()
+}).omit({ id: true, createdAt: true, updatedAt: true });
+
+export const insertGenreSchema = createInsertSchema(genres, {
+  name: z.string().min(1),
+  description: z.string().min(1),
+  icon: z.string().min(1)
+}).omit({ id: true });
+
+export const insertStoryGenreSchema = createInsertSchema(storyGenres, {
+  storyId: z.number(),
+  genreId: z.number()
+});
+
+export const insertRatingSchema = createInsertSchema(ratings, {
+  userId: z.number(),
+  storyId: z.number(),
+  rating: z.number()
+}).omit({ id: true, createdAt: true });
+
+export const insertBookmarkSchema = createInsertSchema(bookmarks, {
+  userId: z.number(),
+  storyId: z.number()
+}).omit({ id: true, createdAt: true });
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, isPublished: true, isApproved: true, createdAt: true });
 
 // Select Types
