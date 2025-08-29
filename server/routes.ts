@@ -14,7 +14,7 @@ import {
   registerSchema,
   publishStorySchema,
   taleCraftPublishSchema
-} from "../shared/schema";
+} from "@shared/schema";
 import express from "express";
 import { z } from "zod";
 import { registerAdminAPI } from "./admin-api";
@@ -119,15 +119,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     description: z.string().min(10),
     role: z.string().min(2),
     image: z.string().url(),
-    backgroundStory: z.string().optional(),
-    characterType: z.string().optional(),
-    associatedStories: z.array(z.number()).optional(),
   });
 
   app.post("/api/characters", requireAuth, async (req: Request, res: Response) => {
     try {
       const body = insertCharacterSchema.parse(req.body);
-      const created = await supabaseStorage.createCharacter(body as { name: string; description: string; role: string; image: string; backgroundStory?: string; characterType?: string; associatedStories?: number[]; });
+      const created = await supabaseStorage.createCharacter(body);
       if (!created) {
         return res.status(500).json({ message: "Could not create character" });
       }
@@ -1581,27 +1578,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const data = insertRatingSchema.parse({
+        ...req.body,
         userId: req.user!.id,
-        storyId,
-        rating: req.body.rating,
-        review: req.body.review
+        storyId
       });
       
       // Check if user already rated
-      const existingRating = await supabaseStorage.getRating(req.user!.id, storyId);
+      const existingRating = await supabaseStorage.getRating(data.userId, data.storyId);
       
       let rating;
       if (existingRating) {
         rating = await supabaseStorage.updateRating(existingRating.id, {
-          rating: req.body.rating,
-          review: req.body.review || ''
+          rating: data.rating,
+          review: data.review || ''
         });
       } else {
         rating = await supabaseStorage.createRating({
-          user_id: req.user!.id,
-          story_id: storyId,
-          rating: req.body.rating,
-          review: req.body.review || ''
+          user_id: data.userId,
+          story_id: data.storyId,
+          rating: data.rating,
+          review: data.review || ''
         });
       }
       

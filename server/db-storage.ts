@@ -164,8 +164,7 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const result = await db.update(stories)
       .set({
-        ...storyData,
-        updatedAt: now
+        ...storyData
       })
       .where(eq(stories.id, id))
       .returning();

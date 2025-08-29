@@ -78,20 +78,20 @@ export const insertUserSchema = createInsertSchema(users, {
   password: z.string().min(1),
   email: z.string().email(),
   fullName: z.string().min(1)
-}).omit({ id: true, isAdmin: true });
+});
 
 export const insertStorySchema = createInsertSchema(stories, {
   title: z.string().min(1),
   description: z.string().min(1),
   content: z.string().min(1),
   authorId: z.number()
-}).omit({ id: true, createdAt: true, updatedAt: true });
+});
 
 export const insertGenreSchema = createInsertSchema(genres, {
   name: z.string().min(1),
   description: z.string().min(1),
   icon: z.string().min(1)
-}).omit({ id: true });
+});
 
 export const insertStoryGenreSchema = createInsertSchema(storyGenres, {
   storyId: z.number(),
@@ -102,13 +102,13 @@ export const insertRatingSchema = createInsertSchema(ratings, {
   userId: z.number(),
   storyId: z.number(),
   rating: z.number()
-}).omit({ id: true, createdAt: true });
+});
 
 export const insertBookmarkSchema = createInsertSchema(bookmarks, {
   userId: z.number(),
   storyId: z.number()
-}).omit({ id: true, createdAt: true });
-export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, isPublished: true, isApproved: true, createdAt: true });
+});
+export const insertProjectSchema = createInsertSchema(projects);
 
 // Select Types
 export type User = typeof users.$inferSelect;
@@ -134,7 +134,11 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export const registerSchema = insertUserSchema.extend({
+export const registerSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Valid email is required"),
+  fullName: z.string().min(1, "Full name is required"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
